@@ -6,6 +6,7 @@ globs: src/**/*
 # Caravan Merchant — module pointers
 
 - **Dialog / flavor text:** `src/content/dialog/dialog.ts` (keys only; logic stays in `src/game/quests`).
+- **Location stories & market backgrounds:** `src/content/locationContent.ts`; pixel town icons: `src/ui/icons/LocationPixelIcon.tsx`.
 - **Goods & prices:** `src/game/economy/goods.ts`, `src/game/economy/prices.ts`; buy/sell rules in `src/game/economy/buySell.ts`.
 - **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts`.
 - **Caravan upgrades:** `src/game/caravan/` — `cartTiers.ts`, `horses.ts`, `hires.ts`, `actions.ts` — capacity in `capacity.ts`.

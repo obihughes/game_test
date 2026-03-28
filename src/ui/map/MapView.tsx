@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from 'react'
 import { findRoute, ROUTES, TOWNS, type Town } from '@/game/world/index.ts'
 import { MAP_POSITIONS } from '@/content/mapLayout.ts'
+import { MapLocationGlyph } from '@/ui/icons/LocationPixelIcon.tsx'
 import { mapTheme } from './mapTheme.ts'
 import styles from './map.module.css'
 
@@ -56,22 +57,27 @@ export function MapView({ location, onSelectTown }: MapViewProps) {
         const here = t.id === location
         const route = findRoute(location, t.id)
         const canGo = Boolean(route)
+        const dim = !(canGo || here)
         return (
-          <g key={t.id}>
+          <g key={t.id} className={here ? styles.townCurrentWrap : undefined}>
             <circle
-              className={`${styles.town} ${here ? styles.townCurrent : ''}`}
+              className={styles.townHit}
               cx={pos.x}
               cy={pos.y}
-              r={here ? 5 : 4}
-              fill={mapTheme.townFill}
-              stroke={mapTheme.townStroke}
-              strokeWidth={1.2}
-              opacity={canGo || here ? 1 : 0.45}
+              r={7.5}
+              fill="rgba(0,0,0,0.02)"
+              opacity={dim ? 0.45 : 1}
+              style={{
+                cursor: canGo && !here ? 'pointer' : 'default',
+              }}
               onClick={() => {
                 if (canGo && !here) onSelectTown(t.id)
               }}
             />
-            <text className={styles.label} x={pos.x} y={pos.y - 9}>
+            <g style={{ pointerEvents: 'none' as const }} opacity={dim ? 0.45 : 1}>
+              <MapLocationGlyph townId={t.id} x={pos.x} y={pos.y} size={here ? 8.5 : 6.5} />
+            </g>
+            <text className={styles.label} x={pos.x} y={pos.y - 12}>
               {t.name}
             </text>
           </g>

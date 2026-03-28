@@ -16,18 +16,16 @@
   opacity: 0.85;
 }
 
-.town {
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
+.townHit {
+  transition: filter 0.15s ease, opacity 0.15s ease;
 }
 
-.town:hover {
-  transform: scale(1.06);
-  filter: brightness(1.08);
+.townHit:hover {
+  filter: brightness(1.12);
 }
 
-.townCurrent {
-  filter: drop-shadow(0 0 8px rgba(201, 166, 107, 0.65));
+.townCurrentWrap {
+  filter: drop-shadow(0 0 9px rgba(201, 166, 107, 0.7));
 }
 
 .label {

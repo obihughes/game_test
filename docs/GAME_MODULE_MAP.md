@@ -17,6 +17,8 @@ Read this first when editing a slice of the game. Each row is intentionally isol
 | Quest chain and flags | `src/game/quests/` | `definitions.ts` strings keys, `questLogic.ts` completion rules |
 | Save/load | `src/game/persistence/` | Storage key, migration |
 | Player-facing text (dialog, flavor) | `src/content/dialog/` | `dialog.ts` keyed strings |
+| Location lore + market panel backgrounds | `src/content/locationContent.ts` | `LOCATION_STORIES`, `getLocationPanelBackground` |
+| Pixel town icons (map + UI) | `src/ui/icons/LocationPixelIcon.tsx` | `LocationPixelIcon`, `MapLocationGlyph` |
 | Map node positions (visual only) | `src/content/mapLayout.ts` | x/y per town id |
 | Map rendering / colors | `src/ui/map/` | `MapView.tsx`, `map.module.css`, `mapTheme.ts` |
 | Global UI shell | `src/App.tsx`, `src/app.css` | Tabs, layout |

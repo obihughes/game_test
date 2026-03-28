@@ -1,6 +1,8 @@
 import { useMemo } from 'react'
+import { getLocationStory } from '@/content/locationContent.ts'
 import { ROUTES, TOWNS } from '@/game/world/index.ts'
 import { travelDaysFor } from '@/game/caravan/horses.ts'
+import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { useGameStore } from '@/store/gameStore.ts'
 
 export function TravelScreen() {
@@ -31,12 +33,19 @@ export function TravelScreen() {
         {options.map((r) => {
           const name = TOWNS[r.to]?.name ?? r.to
           const days = travelDaysFor(r.baseDays, game.caravan.horses)
+          const destStory = getLocationStory(r.to)
           return (
             <li key={r.to} className="travel-row">
-              <div>
-                <strong>{name}</strong>
-                <div className="muted small">
-                  {days} day{days === 1 ? '' : 's'} · Toll {r.toll} gold
+              <div className="travel-row__main">
+                <LocationPixelIcon className="pixel-icon" townId={r.to} size={40} title={name} />
+                <div>
+                  <strong>{name}</strong>
+                  <div className="muted small">
+                    {days} day{days === 1 ? '' : 's'} · Toll {r.toll} gold
+                  </div>
+                  <p className="travel-row__story muted small" title={destStory}>
+                    {destStory}
+                  </p>
                 </div>
               </div>
               <button type="button" onClick={() => travelTo(r.to)}>

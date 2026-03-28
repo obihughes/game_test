@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { GOODS, GOOD_IDS } from '@/game/economy/index.ts'
 import { PRICES_BY_TOWN } from '@/game/economy/prices.ts'
 import { getDialog } from '@/content/dialog/dialog.ts'
+import { getLocationPanelBackground, getLocationStory } from '@/content/locationContent.ts'
 import { spareCapacity } from '@/game/caravan/capacity.ts'
+import { TOWNS } from '@/game/world/index.ts'
+import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { useGameStore } from '@/store/gameStore.ts'
 import type { GoodId } from '@/game/core/types.ts'
 
@@ -16,13 +19,29 @@ export function TownScreen() {
 
   const townPrices = PRICES_BY_TOWN[game.location]
   const spare = spareCapacity(game)
+  const townName = TOWNS[game.location]?.name ?? game.location
+  const panelBg = getLocationPanelBackground(game.location)
+  const story = getLocationStory(game.location)
 
   return (
-    <section className="panel">
-      <header className="panel-header">
-        <h2>Market</h2>
-        <p className="muted">{getDialog('ui_welcome')}</p>
-      </header>
+    <section className="panel location-panel">
+      <div className="location-panel__bg" style={panelBg} aria-hidden />
+      <div className="location-panel__inner">
+        <header className="panel-header location-panel__header">
+          <div className="location-panel__title-row">
+            <LocationPixelIcon
+              className="pixel-icon"
+              townId={game.location}
+              size={48}
+              title={townName}
+            />
+            <div className="location-panel__titles">
+              <h2>Market · {townName}</h2>
+              <p className="muted">{getDialog('ui_welcome')}</p>
+            </div>
+          </div>
+          <p className="location-story">{story}</p>
+        </header>
       {lastError ? (
         <p className="error" role="alert">
           {lastError}{' '}
@@ -73,6 +92,7 @@ export function TownScreen() {
           )
         })}
       </ul>
+      </div>
     </section>
   )
 }

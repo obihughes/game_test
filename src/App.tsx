@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { TOWNS } from '@/game/world/index.ts'
 import { useGameStore } from '@/store/gameStore.ts'
 import { MapView } from '@/ui/map/MapView.tsx'
+import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { QuestPanel } from '@/ui/QuestPanel.tsx'
 import { TownScreen } from '@/ui/screens/TownScreen.tsx'
 import { TravelScreen } from '@/ui/screens/TravelScreen.tsx'
@@ -22,8 +23,16 @@ export function App() {
       <header className="top-bar">
         <div>
           <h1>Caravan Merchant</h1>
-          <p className="muted">
-            Day {game.day} · {townName} · {game.gold} gold
+          <p className="muted top-bar__status">
+            <LocationPixelIcon
+              townId={game.location}
+              size={24}
+              className="pixel-icon pixel-icon--header"
+              title={townName}
+            />
+            <span>
+              Day {game.day} · {townName} · {game.gold} gold
+            </span>
           </p>
         </div>
         <button type="button" className="ghost" onClick={() => reset()}>
