@@ -1,13 +1,41 @@
 /**
  * Curved road segments for the world map (viewBox ~0–100).
- * Bend sign is stable per undirected edge so A→B matches B→A.
+ * Each configured value is stored in canonical (sorted) edge order.
+ * When callers pass the edge reversed, we flip the sign so the rendered
+ * geometry stays identical in screen space.
  */
-export function edgeBend(from: string, to: string): number {
+const EDGE_CURVE_BY_KEY: Record<string, number> = {
+  'ashenford|crownpost': 0.7,
+  'ashenford|mirecross': -0.18,
+  'ashenford|riversend': 1.05,
+  'ashenford|stoneholt': -0.55,
+  'crownpost|fenward': -1.1,
+  'crownpost|mirecross': 0.24,
+  'crownpost|riversend': 0.62,
+  'fenward|mirecross': 0.35,
+  'fenward|riversend': 1.05,
+  'mirecross|riversend': -0.12,
+  'riversend|saltmere': 0.2,
+}
+
+function edgeKey(from: string, to: string): string {
+  return [from, to].sort().join('|')
+}
+
+function orientCurve(from: string, to: string, canonicalCurve: number): number {
   const [a, b] = [from, to].sort()
+  return from === a && to === b ? canonicalCurve : -canonicalCurve
+}
+
+export function edgeBend(from: string, to: string): number {
+  const key = edgeKey(from, to)
+  const configured = EDGE_CURVE_BY_KEY[key]
+  if (configured != null) return orientCurve(from, to, configured)
+
   let h = 0
-  const k = `${a}|${b}`
-  for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0
-  return h % 2 === 0 ? 1 : -1
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0
+  const fallback = h % 2 === 0 ? 0.45 : -0.45
+  return orientCurve(from, to, fallback)
 }
 
 function chordLength(ax: number, ay: number, bx: number, by: number): number {
@@ -33,7 +61,8 @@ export function roadControlPoint(
   const uy = dy / len
   const px = -uy
   const py = ux
-  const offset = Math.min(16, Math.max(3.8, len * 0.36)) * bend
+  const curveStrength = Math.abs(bend)
+  const offset = Math.min(16, Math.max(3.8, len * 0.36)) * curveStrength * Math.sign(bend)
   return { cx: mx + px * offset, cy: my + py * offset }
 }
 
@@ -51,7 +80,8 @@ export function roadLabelAnchor(
   const len = Math.hypot(dx, dy) || 1e-6
   const px = -dy / len
   const py = dx / len
-  const nudge = 2.35 * bend
+  const labelSide = bend === 0 ? 1 : Math.sign(bend)
+  const nudge = 2.35 * labelSide
   return { mx: mx + px * nudge, my: my + py * nudge }
 }
 
