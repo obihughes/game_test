@@ -5,13 +5,109 @@ export interface Good {
   name: string
   weightPerUnit: number
   dialogFlavorId: string
+  /** Shown in lists and cards (emoji / symbol). */
+  icon: string
 }
 
 export const GOODS: Record<GoodId, Good> = {
-  iron: { id: 'iron', name: 'Iron ingots', weightPerUnit: 2, dialogFlavorId: 'good_iron' },
-  silk: { id: 'silk', name: 'Silk bolts', weightPerUnit: 1, dialogFlavorId: 'good_silk' },
-  wine: { id: 'wine', name: 'River wine', weightPerUnit: 1, dialogFlavorId: 'good_wine' },
-  herbs: { id: 'herbs', name: 'Dried herbs', weightPerUnit: 1, dialogFlavorId: 'good_herbs' },
+  iron: {
+    id: 'iron',
+    name: 'Iron ingots',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_iron',
+    icon: '⚙️',
+  },
+  silk: {
+    id: 'silk',
+    name: 'Silk bolts',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_silk',
+    icon: '🧵',
+  },
+  wine: {
+    id: 'wine',
+    name: 'River wine',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_wine',
+    icon: '🍷',
+  },
+  herbs: {
+    id: 'herbs',
+    name: 'Dried herbs',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_herbs',
+    icon: '🌿',
+  },
+  fish: {
+    id: 'fish',
+    name: 'Barrel of smoked fish',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_fish',
+    icon: '🐟',
+  },
+  salt: {
+    id: 'salt',
+    name: 'Sack of salt',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_salt',
+    icon: '🧂',
+  },
+  rope: {
+    id: 'rope',
+    name: 'Coiled hemp rope',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_rope',
+    icon: '🪢',
+  },
+  peat: {
+    id: 'peat',
+    name: 'Bricks of peat',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_peat',
+    icon: '🟤',
+  },
+  obsidian_glass: {
+    id: 'obsidian_glass',
+    name: 'Obsidian glass panes',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_obsidian_glass',
+    icon: '🪟',
+  },
+  dreaming_moss: {
+    id: 'dreaming_moss',
+    name: 'Dreaming moss',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_dreaming_moss',
+    icon: '🫧',
+  },
+  bottled_echo: {
+    id: 'bottled_echo',
+    name: 'Bottled echo',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_bottled_echo',
+    icon: '🫙',
+  },
+  chain_gang_tools: {
+    id: 'chain_gang_tools',
+    name: 'Chain gang tools',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_chain_gang_tools',
+    icon: '⛓️',
+  },
+  indenture_scroll: {
+    id: 'indenture_scroll',
+    name: 'Indenture scroll',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_indenture_scroll',
+    icon: '📜',
+  },
+  lucky_carp_bone: {
+    id: 'lucky_carp_bone',
+    name: 'Lucky carp skeleton',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_lucky_carp_bone',
+    icon: '🦴',
+  },
 }
 
 export const GOOD_IDS = Object.keys(GOODS) as GoodId[]

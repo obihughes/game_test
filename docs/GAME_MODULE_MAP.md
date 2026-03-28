@@ -10,12 +10,12 @@ Read this first when editing a slice of the game. Each row is intentionally isol
 
 | Concern | Folder | Edit here for |
 | ------- | ------ | ------------- |
-| Shared types, initial save version | `src/game/core/` | `GameState`, IDs, `createInitialState` |
+| Shared types, initial save version | `src/game/core/` | `GameState` (incl. `activeMerchantId`), IDs, `createInitialState`, `SAVE_VERSION` |
 | Towns, routes, travel rules | `src/game/world/` | Which towns exist, edges, tolls, base travel days |
-| Goods, buy/sell prices | `src/game/economy/` | `goods.ts`, `prices.ts`; rules in `buySell.ts` |
+| Goods, merchants, buy/sell | `src/game/economy/` | `goods.ts` (names, weights, icons), `merchants.ts` (per-town stalls, `PriceRow` catalogs), `prices.ts` (`PriceRow` type); rules in `buySell.ts` (`buyGood` / `sellGood` take `merchantId`) |
 | Cart tiers, horses, hires, capacity math | `src/game/caravan/` | Upgrade costs, horse caps, hire costs, `capacity.ts` |
 | Quest chain and flags | `src/game/quests/` | `definitions.ts` strings keys, `questLogic.ts` completion rules |
-| Save/load | `src/game/persistence/` | Storage key, migration |
+| Save/load | `src/game/persistence/` | Storage key; save shape migration also in `src/store/gameStore.ts` (Zustand `migrate` + `version`) |
 | Player-facing text (dialog, flavor) | `src/content/dialog/` | `dialog.ts` keyed strings |
 | Location lore + market panel backgrounds | `src/content/locationContent.ts` | `LOCATION_STORIES`, `getLocationPanelBackground` |
 | Pixel town icons (map + UI) | `src/ui/icons/LocationPixelIcon.tsx` | `LocationPixelIcon`, `MapLocationGlyph` |
@@ -23,7 +23,7 @@ Read this first when editing a slice of the game. Each row is intentionally isol
 | Map rendering / colors | `src/ui/map/` | `MapView.tsx`, `map.module.css`, `mapTheme.ts` |
 | Global UI shell | `src/App.tsx`, `src/app.css` | Tabs, layout |
 | Screens | `src/ui/screens/` | Market, travel list, caravan upgrades |
-| React + Zustand wiring | `src/store/gameStore.ts` | Actions that call pure game functions |
+| React + Zustand wiring | `src/store/gameStore.ts` | `travelTo`, `setActiveMerchant`, `buy` / `sell` (use `game.activeMerchantId`) |
 
 ## Import convention
 

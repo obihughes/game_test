@@ -1,6 +1,7 @@
 import type { GameState } from './types.ts'
+import { defaultMerchantIdForTown } from '../economy/merchants.ts'
 
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 
 export function createInitialState(): GameState {
   return {
@@ -8,6 +9,7 @@ export function createInitialState(): GameState {
     gold: 120,
     day: 1,
     location: 'ashenford',
+    activeMerchantId: defaultMerchantIdForTown('ashenford'),
     inventory: {},
     caravan: {
       cartTier: 0,

@@ -2,6 +2,8 @@ import { CART_TIERS, tierConfig } from '@/game/caravan/cartTiers.ts'
 import { HORSE_COST, maxHorsesForCart } from '@/game/caravan/horses.ts'
 import { HIRE_COST, HIRE_LABEL } from '@/game/caravan/hires.ts'
 import { cargoWeight, maxCargoWeight } from '@/game/caravan/capacity.ts'
+import { GOODS, GOOD_IDS } from '@/game/economy/index.ts'
+import { GoodIcon } from '@/ui/icons/GoodIcon.tsx'
 import { useGameStore } from '@/store/gameStore.ts'
 import type { HireRole } from '@/game/core/types.ts'
 
@@ -20,6 +22,7 @@ export function CaravanScreen() {
   const cap = maxCargoWeight(game)
   const used = cargoWeight(game)
   const horseCap = maxHorsesForCart(game.caravan.cartTier)
+  const cargoLines = GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0)
 
   return (
     <section className="panel">
@@ -29,6 +32,28 @@ export function CaravanScreen() {
           Wagon: {tier.label} · Capacity {used} / {cap}
         </p>
       </header>
+      {cargoLines.length > 0 ? (
+        <div className="caravan-cargo-summary">
+          <h3 className="caravan-cargo-summary__title">Cargo</h3>
+          <ul className="caravan-cargo-list">
+            {cargoLines.map((id) => {
+              const g = GOODS[id]!
+              const n = game.inventory[id] ?? 0
+              return (
+                <li key={id} className="caravan-cargo-row">
+                  <GoodIcon goodId={id} size={20} className="caravan-cargo-row__icon" />
+                  <span className="caravan-cargo-row__name">{g.name}</span>
+                  <span className="caravan-cargo-row__qty muted small">
+                    ×{n} · {g.weightPerUnit * n} wt
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : (
+        <p className="muted caravan-cargo-empty">Your wagon is empty — buy goods at the Market.</p>
+      )}
       {lastError ? (
         <p className="error" role="alert">
           {lastError}{' '}
