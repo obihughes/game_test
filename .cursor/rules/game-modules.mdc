@@ -1,0 +1,17 @@
+---
+description: Where to edit trading game domains (economy, world, content, map UI)
+globs: src/**/*
+---
+
+# Caravan Merchant — module pointers
+
+- **Dialog / flavor text:** `src/content/dialog/dialog.ts` (keys only; logic stays in `src/game/quests`).
+- **Goods & prices:** `src/game/economy/goods.ts`, `src/game/economy/prices.ts`; buy/sell rules in `src/game/economy/buySell.ts`.
+- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts`.
+- **Caravan upgrades:** `src/game/caravan/` — `cartTiers.ts`, `horses.ts`, `hires.ts`, `actions.ts` — capacity in `capacity.ts`.
+- **Quests:** `src/game/quests/definitions.ts` + `questLogic.ts`.
+- **Map look (SVG/CSS/colors):** `src/ui/map/` and `src/content/mapLayout.ts` for positions.
+- **Save game:** `src/game/persistence/` — key in `constants.ts`.
+- **Orchestration:** `src/store/gameStore.ts` — keep thin; business rules in `src/game/`.
+
+See `docs/GAME_MODULE_MAP.md` for the full table.

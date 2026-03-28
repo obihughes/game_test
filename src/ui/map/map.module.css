@@ -1,0 +1,39 @@
+.svg {
+  width: 100%;
+  max-width: 520px;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  border: 1px solid #3a3026;
+  background: radial-gradient(circle at 30% 20%, #2a2218 0%, #14100c 70%);
+}
+
+.road {
+  stroke: var(--map-road, #5c4a36);
+  stroke-width: 4;
+  stroke-linecap: round;
+  fill: none;
+  opacity: 0.85;
+}
+
+.town {
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.town:hover {
+  transform: scale(1.06);
+  filter: brightness(1.08);
+}
+
+.townCurrent {
+  filter: drop-shadow(0 0 8px rgba(201, 166, 107, 0.65));
+}
+
+.label {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 11px;
+  fill: var(--map-label, #f2e6d4);
+  text-anchor: middle;
+  pointer-events: none;
+}
