@@ -1,7 +1,6 @@
 import type { GameState } from './types.ts'
-import { defaultMerchantIdForTown } from '../economy/merchants.ts'
 
-export const SAVE_VERSION = 5
+export const SAVE_VERSION = 6
 
 export function createInitialState(): GameState {
   return {
@@ -9,7 +8,6 @@ export function createInitialState(): GameState {
     gold: 420,
     day: 1,
     location: 'ashenford',
-    activeMerchantId: defaultMerchantIdForTown('ashenford'),
     inventory: {},
     inventoryCostBasis: {},
     tradeGoldSpent: 0,

@@ -1,5 +1,5 @@
-import { effectivePriceRow } from './merchants.ts'
-import type { GoodId, MerchantId, TownId } from '../core/types.ts'
+import { townMarketPriceRow } from './merchants.ts'
+import type { GoodId, TownId } from '../core/types.ts'
 
 export interface PricePoint {
   day: number
@@ -8,12 +8,11 @@ export interface PricePoint {
 }
 
 /**
- * Returns price history for a good at a merchant over the last `lookback` days.
+ * Returns price history for a good at a town market over the last `lookback` days.
  * Fully deterministic — no stored state needed.
  */
 export function getPriceTrend(
   townId: TownId,
-  merchantId: MerchantId,
   goodId: GoodId,
   currentDay: number,
   lookback = 7,
@@ -21,7 +20,7 @@ export function getPriceTrend(
   const points: PricePoint[] = []
   for (let i = lookback - 1; i >= 0; i--) {
     const day = Math.max(1, currentDay - i)
-    const row = effectivePriceRow(townId, merchantId, goodId, day)
+    const row = townMarketPriceRow(townId, goodId, day)
     if (row) {
       points.push({ day, buy: row.buy, sell: row.sell })
     }
@@ -36,11 +35,10 @@ export type TrendDirection = 'up' | 'down' | 'flat'
  */
 export function getPriceTrendDirection(
   townId: TownId,
-  merchantId: MerchantId,
   goodId: GoodId,
   currentDay: number,
 ): TrendDirection {
-  const history = getPriceTrend(townId, merchantId, goodId, currentDay, 6)
+  const history = getPriceTrend(townId, goodId, currentDay, 6)
   if (history.length < 2) return 'flat'
   const today = history[history.length - 1]!.buy
   const past = history.slice(0, -1)

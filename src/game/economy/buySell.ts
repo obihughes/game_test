@@ -1,6 +1,6 @@
-import type { GameResult, GameState, GoodId, MerchantId } from '../core/types.ts'
+import type { GameResult, GameState, GoodId } from '../core/types.ts'
 import { GOODS } from './goods.ts'
-import { effectivePriceRow, isMerchantAtTown } from './merchants.ts'
+import { townMarketPriceRow } from './merchants.ts'
 import { spareCapacity } from '../caravan/capacity.ts'
 
 /** Weighted average buy price per unit for stock on hand; null if empty or unknown (pre-tracking save). */
@@ -16,16 +16,12 @@ export function buyGood(
   state: GameState,
   goodId: GoodId,
   qty: number,
-  merchantId: MerchantId,
 ): GameResult {
   if (qty <= 0) return { ok: false, reason: 'Invalid amount.' }
-  if (!merchantId || !isMerchantAtTown(state.location, merchantId)) {
-    return { ok: false, reason: 'No merchant selected.' }
-  }
   const good = GOODS[goodId]
   if (!good) return { ok: false, reason: 'Unknown good.' }
-  const row = effectivePriceRow(state.location, merchantId, goodId, state.day)
-  if (!row) return { ok: false, reason: 'Not sold here.' }
+  const row = townMarketPriceRow(state.location, goodId, state.day)
+  if (!row || row.buy <= 0) return { ok: false, reason: 'Not sold here.' }
   const cost = row.buy * qty
   if (state.gold < cost) {
     return { ok: false, reason: 'Not enough gold.' }
@@ -54,18 +50,14 @@ export function sellGood(
   state: GameState,
   goodId: GoodId,
   qty: number,
-  merchantId: MerchantId,
 ): GameResult {
   if (qty <= 0) return { ok: false, reason: 'Invalid amount.' }
-  if (!merchantId || !isMerchantAtTown(state.location, merchantId)) {
-    return { ok: false, reason: 'No merchant selected.' }
-  }
   const have = state.inventory[goodId] ?? 0
   if (have < qty) {
     return { ok: false, reason: "You don't carry that many." }
   }
-  const row = effectivePriceRow(state.location, merchantId, goodId, state.day)
-  if (!row) return { ok: false, reason: 'No buyer here.' }
+  const row = townMarketPriceRow(state.location, goodId, state.day)
+  if (!row || row.sell <= 0) return { ok: false, reason: 'No buyer here.' }
   const gain = row.sell * qty
   const next = have - qty
   const nextInv = { ...state.inventory }

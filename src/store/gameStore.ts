@@ -6,10 +6,8 @@ import {
   type GameState,
   type GoodId,
   type HireRole,
-  type MerchantId,
   type TownId,
 } from '@/game/core/index.ts'
-import { defaultMerchantIdForTown, isMerchantAtTown } from '@/game/economy/merchants.ts'
 import { applyTravel, computeTravelLeg } from '@/game/world/travel.ts'
 import { findRoute, type Route } from '@/game/world/routes.ts'
 import {
@@ -34,18 +32,14 @@ export interface CartItem {
   goodId: GoodId
   qty: number
   kind: 'buy' | 'sell'
-  merchantId: MerchantId
 }
 
 export interface GameStore {
   game: GameState
   lastError: string | null
   travelTo: (destination: TownId) => void
-  setActiveMerchant: (merchantId: MerchantId) => void
   buy: (goodId: GoodId, qty: number) => void
   sell: (goodId: GoodId, qty: number) => void
-  buyAtMerchant: (goodId: GoodId, qty: number, merchantId: MerchantId) => void
-  sellToMerchant: (goodId: GoodId, qty: number, merchantId: MerchantId) => void
   /** Execute a batch of buy/sell operations in sequence; stops on first error. */
   executeBatch: (items: CartItem[]) => void
   upgradeCart: () => void
@@ -92,25 +86,13 @@ export const useGameStore = create<GameStore>()(
             return { ...s, lastError: r.reason }
           }
           let next = applyUpkeepForTravel(r.state, before, route)
-          next = {
-            ...next,
-            activeMerchantId: defaultMerchantIdForTown(destination),
-          }
           next = applyQuestProgress(next)
           return { game: next, lastError: null }
         }),
 
-      setActiveMerchant: (merchantId) =>
-        set((s) => {
-          if (!isMerchantAtTown(s.game.location, merchantId)) {
-            return { ...s, lastError: 'That merchant is not here.' }
-          }
-          return { game: { ...s.game, activeMerchantId: merchantId }, lastError: null }
-        }),
-
       buy: (goodId, qty) =>
         set((s) => {
-          const r = buyGood(s.game, goodId, qty, s.game.activeMerchantId)
+          const r = buyGood(s.game, goodId, qty)
           if (!r.ok) return { ...s, lastError: r.reason }
           const next = applyQuestProgress(r.state)
           return { game: next, lastError: null }
@@ -118,25 +100,9 @@ export const useGameStore = create<GameStore>()(
 
       sell: (goodId, qty) =>
         set((s) => {
-          const r = sellGood(s.game, goodId, qty, s.game.activeMerchantId)
+          const r = sellGood(s.game, goodId, qty)
           if (!r.ok) return { ...s, lastError: r.reason }
           const next = applyQuestProgress(r.state)
-          return { game: next, lastError: null }
-        }),
-
-      buyAtMerchant: (goodId, qty, merchantId) =>
-        set((s) => {
-          const r = buyGood(s.game, goodId, qty, merchantId)
-          if (!r.ok) return { ...s, lastError: r.reason }
-          const next = applyQuestProgress({ ...r.state, activeMerchantId: merchantId })
-          return { game: next, lastError: null }
-        }),
-
-      sellToMerchant: (goodId, qty, merchantId) =>
-        set((s) => {
-          const r = sellGood(s.game, goodId, qty, merchantId)
-          if (!r.ok) return { ...s, lastError: r.reason }
-          const next = applyQuestProgress({ ...r.state, activeMerchantId: merchantId })
           return { game: next, lastError: null }
         }),
 
@@ -148,12 +114,9 @@ export const useGameStore = create<GameStore>()(
             ...items.filter((item) => item.kind === 'buy'),
           ]
           for (const item of orderedItems) {
-            const r =
-              item.kind === 'buy'
-                ? buyGood(state, item.goodId, item.qty, item.merchantId)
-                : sellGood(state, item.goodId, item.qty, item.merchantId)
+            const r = item.kind === 'buy' ? buyGood(state, item.goodId, item.qty) : sellGood(state, item.goodId, item.qty)
             if (!r.ok) return { ...s, lastError: r.reason }
-            state = { ...r.state, activeMerchantId: item.merchantId }
+            state = r.state
           }
           return { game: applyQuestProgress(state), lastError: null }
         }),
@@ -224,23 +187,16 @@ export const useGameStore = create<GameStore>()(
     {
       name: STORAGE_KEY,
       partialize: (state) => ({ game: state.game }),
-      version: 5,
+      version: 6,
       migrate: (persisted) => {
         const p = persisted as { game?: GameState }
         if (!p.game || typeof p.game.version !== 'number') {
           return { game: createInitialState(), lastError: null }
         }
-        let g = p.game
-        if (
-          g.version < 2 ||
-          !g.activeMerchantId ||
-          !isMerchantAtTown(g.location, g.activeMerchantId)
-        ) {
-          g = {
-            ...g,
-            version: SAVE_VERSION,
-            activeMerchantId: defaultMerchantIdForTown(g.location),
-          }
+        let g = p.game as GameState & { activeMerchantId?: string }
+        if (g.version < 6) {
+          const { activeMerchantId: _legacyActiveMerchantId, ...rest } = g
+          g = { ...rest, version: SAVE_VERSION }
         }
         if (!g.inventoryCostBasis || typeof g.inventoryCostBasis !== 'object') {
           g = { ...g, inventoryCostBasis: {}, version: SAVE_VERSION }

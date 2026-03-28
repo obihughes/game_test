@@ -18,10 +18,10 @@ export const PROCESSING_RECIPES: ProcessingRecipe[] = [
   {
     id: 'herbs_to_moss',
     label: 'Distil herbs → Dreaming moss',
-    inputs: [{ goodId: 'herbs', qty: 4 }],
-    goldCost: 5,
-    outputs: [{ goodId: 'dreaming_moss', qty: 1 }],
-    description: 'Slow-dry and bind dried herbs into a potent dreaming moss cake.',
+    inputs: [{ goodId: 'herbs', qty: 2 }],
+    goldCost: 2,
+    outputs: [{ goodId: 'dreaming_moss', qty: 2 }],
+    description: 'Slow-dry and bind dried herbs into dreaming moss cakes.',
   },
   {
     id: 'salt_fish',
@@ -49,9 +49,9 @@ export const PROCESSING_RECIPES: ProcessingRecipe[] = [
     id: 'ferment_fish_sauce',
     label: 'Ferment fish sauce',
     inputs: [
-      { goodId: 'salted_fish', qty: 4 },
+      { goodId: 'salted_fish', qty: 2 },
     ],
-    goldCost: 8,
+    goldCost: 4,
     outputs: [{ goodId: 'fish_sauce', qty: 1 }],
     description: 'Age salted fish in sealed jugs until they break down into pungent, prized fish sauce.',
   },
@@ -206,13 +206,27 @@ export function processRecipe(state: GameState, townId: TownId, recipeId: string
     }
   }
   let newInv = { ...state.inventory }
+  const newCostBasis = { ...state.inventoryCostBasis }
+  let totalCraftBasis = recipe.goldCost
   for (const input of recipe.inputs) {
+    const have = state.inventory[input.goodId] ?? 0
+    const basis = state.inventoryCostBasis[input.goodId] ?? 0
+    const consumedBasis = have > 0 ? (basis * input.qty) / have : 0
+    totalCraftBasis += consumedBasis
     const next = (newInv[input.goodId] ?? 0) - input.qty
     if (next <= 0) delete newInv[input.goodId]
     else newInv[input.goodId] = next
+    const nextBasis = basis - consumedBasis
+    if (next <= 0 || nextBasis <= 0) delete newCostBasis[input.goodId]
+    else newCostBasis[input.goodId] = nextBasis
   }
+  const totalOutputQty = recipe.outputs.reduce((sum, output) => sum + output.qty, 0)
   for (const output of recipe.outputs) {
     newInv = { ...newInv, [output.goodId]: (newInv[output.goodId] ?? 0) + output.qty }
+    if (totalOutputQty > 0 && totalCraftBasis > 0) {
+      const outputBasis = (totalCraftBasis * output.qty) / totalOutputQty
+      newCostBasis[output.goodId] = (newCostBasis[output.goodId] ?? 0) + outputBasis
+    }
   }
   return {
     ok: true,
@@ -220,6 +234,7 @@ export function processRecipe(state: GameState, townId: TownId, recipeId: string
       ...state,
       gold: state.gold - recipe.goldCost,
       inventory: newInv,
+      inventoryCostBasis: newCostBasis,
     },
   }
 }

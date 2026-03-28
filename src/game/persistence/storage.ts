@@ -1,5 +1,4 @@
 import { createInitialState, SAVE_VERSION, type GameState } from '../core/index.ts'
-import { defaultMerchantIdForTown, isMerchantAtTown } from '../economy/merchants.ts'
 
 export function migrateState(raw: unknown): GameState {
   if (!raw || typeof raw !== 'object') {
@@ -10,17 +9,10 @@ export function migrateState(raw: unknown): GameState {
   if (version < 1 || version > SAVE_VERSION) {
     return createInitialState()
   }
-  let g = o as unknown as GameState
-  if (
-    g.version < 2 ||
-    !g.activeMerchantId ||
-    !isMerchantAtTown(g.location, g.activeMerchantId)
-  ) {
-    g = {
-      ...g,
-      version: SAVE_VERSION,
-      activeMerchantId: defaultMerchantIdForTown(g.location),
-    }
+  let g = o as unknown as GameState & { activeMerchantId?: string }
+  if (g.version < 6) {
+    const { activeMerchantId: _legacyActiveMerchantId, ...rest } = g
+    g = { ...rest, version: SAVE_VERSION }
   }
   if (!g.inventoryCostBasis || typeof g.inventoryCostBasis !== 'object') {
     g = { ...g, inventoryCostBasis: {}, version: SAVE_VERSION }

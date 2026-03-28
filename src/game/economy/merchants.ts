@@ -1,4 +1,5 @@
 import type { GoodId, MerchantId, TownId } from '../core/types.ts'
+import { getTownFallbackDemandMultiplier } from '../world/townEconomy.ts'
 import { GOOD_IDS } from './goods.ts'
 import { getEffectivePrice, type PriceRow } from './prices.ts'
 
@@ -371,14 +372,79 @@ export function effectivePriceRow(
   }
 }
 
+export function townMarketBasePriceRow(townId: TownId, goodId: GoodId): PriceRow | undefined {
+  let bestBuy = Number.POSITIVE_INFINITY
+  let bestSell = 0
+  for (const merchant of merchantsForTown(townId)) {
+    const row = merchant.catalog[goodId]
+    if (!row) continue
+    if (row.buy > 0 && row.buy < bestBuy) bestBuy = row.buy
+    if (row.sell > 0 && row.sell > bestSell) bestSell = row.sell
+  }
+  const buy = Number.isFinite(bestBuy) ? bestBuy : 0
+  const sell = bestSell
+  if (buy <= 0 && sell <= 0) return undefined
+  return { buy, sell }
+}
+
+export function townMarketPriceRow(townId: TownId, goodId: GoodId, day: number): PriceRow | undefined {
+  const base = townMarketBasePriceRow(townId, goodId)
+  const listedSell =
+    base && base.sell > 0 ? getEffectivePrice(base.sell, day, `${townId}_market`, goodId, 'sell') : 0
+  const fallbackSell = listedSell > 0 ? 0 : fallbackSellPriceAtTown(townId, goodId, day)
+  const buy =
+    base && base.buy > 0 ? getEffectivePrice(base.buy, day, `${townId}_market`, goodId, 'buy') : 0
+  const sell = listedSell > 0 ? listedSell : fallbackSell
+  if (buy <= 0 && sell <= 0) return undefined
+  return { buy, sell }
+}
+
+export function fallbackSellPriceAtTown(townId: TownId, goodId: GoodId, day: number): number {
+  const median = medianSellPrice(goodId)
+  if (median <= 0) return 0
+  const multiplier = getTownFallbackDemandMultiplier(townId, goodId)
+  if (multiplier <= 0) return 0
+  const baseSell = Math.max(1, Math.round(median * multiplier))
+  return getEffectivePrice(baseSell, day, `${townId}_street_buyers`, goodId, 'sell')
+}
+
+export function effectiveSellPriceRow(
+  townId: TownId,
+  merchantId: MerchantId,
+  goodId: GoodId,
+  day: number,
+): PriceRow | undefined {
+  const listed = effectivePriceRow(townId, merchantId, goodId, day)
+  if (listed) return listed
+  if (!isMerchantAtTown(townId, merchantId)) return undefined
+  const fallbackSell = fallbackSellPriceAtTown(townId, goodId, day)
+  if (fallbackSell <= 0) return undefined
+  return { buy: 0, sell: fallbackSell }
+}
+
+export interface BestSellOffer {
+  row: PriceRow
+  isFallback: boolean
+}
+
+export function bestSellOfferAtTown(
+  townId: TownId,
+  goodId: GoodId,
+  day: number,
+): BestSellOffer | null {
+  const listed = townMarketBasePriceRow(townId, goodId)
+  if (listed?.sell && listed.sell > 0) {
+    const row = townMarketPriceRow(townId, goodId, day)
+    if (row?.sell && row.sell > 0) return { row, isFallback: false }
+  }
+  const fallbackSell = fallbackSellPriceAtTown(townId, goodId, day)
+  if (fallbackSell <= 0) return null
+  return { row: { buy: 0, sell: fallbackSell }, isFallback: true }
+}
+
 /** Best per-unit sell price (what any merchant here pays) for a good today. */
 export function bestSellPriceAtTown(townId: TownId, goodId: GoodId, day: number): number {
-  let best = 0
-  for (const m of merchantsForTown(townId)) {
-    const row = effectivePriceRow(townId, m.id, goodId, day)
-    if (row && row.sell > best) best = row.sell
-  }
-  return best
+  return bestSellOfferAtTown(townId, goodId, day)?.row.sell ?? 0
 }
 
 /** Cheapest base buy price (no daily variance) for a good in town. */
@@ -487,13 +553,23 @@ export function townDemandGoods(townId: TownId, limit = 4): GoodId[] {
 
 export function isLocalDeal(
   townId: TownId,
-  merchantId: MerchantId,
   goodId: GoodId,
   day: number,
 ): boolean {
-  const eff = effectivePriceRow(townId, merchantId, goodId, day)
+  const eff = townMarketPriceRow(townId, goodId, day)
   if (!eff) return false
-  const med = medianEffectiveBuyPrice(goodId, day)
+  const med = medianTownEffectiveBuyPrice(goodId, day)
   if (med <= 0) return false
   return eff.buy < med * 0.92
+}
+
+export function medianTownEffectiveBuyPrice(goodId: GoodId, day: number): number {
+  const buys: number[] = []
+  for (const townId of Object.keys(MERCHANTS_BY_TOWN) as TownId[]) {
+    const row = townMarketPriceRow(townId, goodId, day)
+    if (row && row.buy > 0) buys.push(row.buy)
+  }
+  buys.sort((a, b) => a - b)
+  const mid = Math.floor(buys.length / 2)
+  return buys.length === 0 ? 0 : buys.length % 2 ? buys[mid]! : (buys[mid - 1]! + buys[mid]!) / 2
 }

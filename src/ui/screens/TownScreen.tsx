@@ -1,23 +1,20 @@
 import { useEffect, useId, useMemo, useState } from 'react'
 import {
   averageInventoryBuyPrice,
+  bestSellOfferAtTown,
   GOODS,
   GOOD_IDS,
+  townMarketPriceRow,
   townDemandGoods,
   townPrimaryGoods,
 } from '@/game/economy/index.ts'
-import {
-  effectivePriceRow,
-  isLocalDeal,
-  merchantsForTown,
-  type MerchantDef,
-} from '@/game/economy/merchants.ts'
+import { isLocalDeal } from '@/game/economy/merchants.ts'
 import { getPriceTrendDirection, trendArrow, getPriceTrend } from '@/game/economy/priceHistory.ts'
 import { getSeasonModifierLabel } from '@/game/world/seasons.ts'
 import { getDialog } from '@/content/dialog/dialog.ts'
 import { getLocationStory } from '@/content/locationContent.ts'
 import { spareCapacity, cargoWeight, maxCargoWeight } from '@/game/caravan/capacity.ts'
-import { TOWNS } from '@/game/world/index.ts'
+import { getTownDemandReason, getTownEconomyProfile, TOWNS } from '@/game/world/index.ts'
 import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { GoodIcon } from '@/ui/icons/GoodIcon.tsx'
 import { useGameStore, type CartItem } from '@/store/gameStore.ts'
@@ -28,12 +25,11 @@ import {
   getWarehouseCapacity,
   getWarehouseUsed,
 } from '@/game/investments/warehouse.ts'
-import type { GoodId, MerchantId } from '@/game/core/types.ts'
+import type { GoodId } from '@/game/core/types.ts'
 
 type MarketTab = 'market' | 'warehouse'
 type TradeKind = 'buy' | 'sell'
 type TradeOffer = {
-  merchant: MerchantDef
   row: { buy: number; sell: number }
 }
 type BuyEntry = {
@@ -53,6 +49,8 @@ type SellEntry = {
   avgBuy: number | null
   sellDelta: number | null
   isWanted: boolean
+  isFallback: boolean
+  demandReason: string | null
   weight: number
   trend: 'up' | 'down' | 'flat'
   seasonLabel: string | null
@@ -61,8 +59,8 @@ type SellEntry = {
 
 export function TownScreen() {
   const game = useGameStore((s) => s.game)
-  const buyAtMerchant = useGameStore((s) => s.buyAtMerchant)
-  const sellToMerchant = useGameStore((s) => s.sellToMerchant)
+  const buy = useGameStore((s) => s.buy)
+  const sell = useGameStore((s) => s.sell)
   const executeBatch = useGameStore((s) => s.executeBatch)
   const lastError = useGameStore((s) => s.lastError)
   const clearError = useGameStore((s) => s.clearError)
@@ -80,6 +78,8 @@ export function TownScreen() {
   const [whQty, setWhQty] = useState<Record<string, number>>({})
   const confirmTitleId = useId()
   const confirmBodyId = useId()
+  const marketTipToggleId = useId()
+  const marketTipPanelId = useId()
 
   // Single-item confirm (for qty > 1 or explicit confirmation)
   const [pendingTrade, setPendingTrade] = useState<
@@ -88,8 +88,6 @@ export function TownScreen() {
         kind: 'buy' | 'sell'
         goodId: GoodId
         qty: number
-        merchantId: MerchantId
-        merchantLabel: string
         unitGold: number
         totalGold: number
       }
@@ -97,8 +95,8 @@ export function TownScreen() {
 
   const [cart, setCart] = useState<CartItem[]>([])
   const [hoveredSparkline, setHoveredSparkline] = useState<string | null>(null)
+  const [marketTipOpen, setMarketTipOpen] = useState(false)
 
-  const merchants = merchantsForTown(game.location)
   const primaryGoodIds = useMemo(() => townPrimaryGoods(game.location, 5), [game.location])
   const wantedGoodIds = useMemo(() => townDemandGoods(game.location, 5), [game.location])
   const primaryGoods = useMemo(() => new Set(primaryGoodIds), [primaryGoodIds])
@@ -109,6 +107,7 @@ export function TownScreen() {
     setTradeQty({})
     setExpandedRows({})
     setShowCartDetails(true)
+    setMarketTipOpen(false)
   }, [game.location])
 
   useEffect(() => {
@@ -118,11 +117,16 @@ export function TownScreen() {
     return () => document.removeEventListener('keydown', handler)
   }, [pendingTrade])
 
+  useEffect(() => {
+    if (marketTab !== 'market') setMarketTipOpen(false)
+  }, [marketTab])
+
   const spare = spareCapacity(game)
   const currentWeight = cargoWeight(game)
   const maxWeight = maxCargoWeight(game)
   const townName = TOWNS[game.location]?.name ?? game.location
   const story = getLocationStory(game.location)
+  const economyProfile = useMemo(() => getTownEconomyProfile(game.location), [game.location])
   const warehouse = game.townWarehouses[game.location]
 
   const cargoGoods = useMemo(
@@ -172,7 +176,13 @@ export function TownScreen() {
           })
           .filter((offer): offer is TradeOffer => offer !== null)
           .sort((a, b) => b.row.sell - a.row.sell)
-        const offer = offers[0] ?? null
+        const bestOffer = bestSellOfferAtTown(game.location, id, game.day)
+        const fallbackMerchant =
+          bestOffer?.isFallback ? merchants.find((merchant) => merchant.id === bestOffer.merchantId) ?? null : null
+        const offer =
+          bestOffer && fallbackMerchant
+            ? { merchant: fallbackMerchant, row: bestOffer.row }
+            : offers[0] ?? null
         const count = game.inventory[id] ?? 0
         const weight = GOODS[id]!.weightPerUnit * count
         const avgBuy = averageInventoryBuyPrice(game, id)
@@ -186,10 +196,15 @@ export function TownScreen() {
           avgBuy,
           sellDelta,
           isWanted: wantedGoods.has(id),
+          isFallback: bestOffer?.isFallback ?? false,
+          demandReason: getTownDemandReason(game.location, id),
           weight,
-          trend: offer ? getPriceTrendDirection(game.location, offer.merchant.id, id, game.day) : 'flat',
+          trend:
+            offer && !(bestOffer?.isFallback ?? false)
+              ? getPriceTrendDirection(game.location, offer.merchant.id, id, game.day)
+              : 'flat',
           seasonLabel: getSeasonModifierLabel(id, game.day),
-          sparklineData: offer
+          sparklineData: offer && !(bestOffer?.isFallback ?? false)
             ? getPriceTrend(game.location, offer.merchant.id, id, game.day, 7).map((p) => p.sell)
             : [],
         }
@@ -223,7 +238,7 @@ export function TownScreen() {
     return cart
       .filter((i) => i.kind === 'sell')
       .reduce((sum, i) => {
-        const row = effectivePriceRow(game.location, i.merchantId, i.goodId, game.day)
+        const row = effectiveSellPriceRow(game.location, i.merchantId, i.goodId, game.day)
         return sum + (row ? row.sell * i.qty : 0)
       }, 0)
   }
@@ -291,7 +306,10 @@ export function TownScreen() {
         ) {
           return acc
         }
-        const row = effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
+        const row =
+          item.kind === 'buy'
+            ? effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
+            : effectiveSellPriceRow(game.location, item.merchantId, item.goodId, game.day)
         if (!row) return acc
         const unitPrice = item.kind === 'buy' ? row.buy : row.sell
         const weight = (GOODS[item.goodId]?.weightPerUnit ?? 0) * item.qty
@@ -350,7 +368,6 @@ export function TownScreen() {
     goodId: GoodId,
     qty: number,
     merchantId: MerchantId,
-    merchantLabel: string,
     unitGold: number,
   ) {
     if (qty <= 1) {
@@ -363,7 +380,6 @@ export function TownScreen() {
       goodId,
       qty,
       merchantId,
-      merchantLabel,
       unitGold,
       totalGold: unitGold * qty,
     })
@@ -396,6 +412,24 @@ export function TownScreen() {
                   📜
                 </button>
               )}
+              {marketTab === 'market' ? (
+                <button
+                  type="button"
+                  id={marketTipToggleId}
+                  className="market-tip-dropdown__toggle market-tip-dropdown__toggle--inline"
+                  aria-expanded={marketTipOpen}
+                  aria-controls={marketTipPanelId}
+                  onClick={() => setMarketTipOpen((open) => !open)}
+                >
+                  <span>Market tip</span>
+                  <span
+                    className={`market-tip-dropdown__chevron${marketTipOpen ? ' market-tip-dropdown__chevron--open' : ''}`}
+                    aria-hidden
+                  >
+                    ▼
+                  </span>
+                </button>
+              ) : null}
             </div>
           </div>
           <div className="market-screen__stats">
@@ -416,8 +450,78 @@ export function TownScreen() {
           </div>
         </div>
 
+        {marketTab === 'market' && marketTipOpen ? (
+          <div
+            id={marketTipPanelId}
+            className="market-tip-dropdown__panel market-tip-dropdown__panel--in-header"
+            role="region"
+            aria-labelledby={marketTipToggleId}
+          >
+            <p className="market-tip-card__hint muted small">
+              Cheap here shows what this town is known for selling. Wanted here shows what usually earns a premium.
+            </p>
+            <p className="market-tip-card__hint muted small">{economyProfile.marketBackstory}</p>
+            <div className="market-tip-card__group">
+              <span className="market-tip-card__label">Cheap here</span>
+              <div className="market-tip-card__chips">
+                {primaryGoodIds.length > 0 ? (
+                  primaryGoodIds.map((goodId) => (
+                    <span key={goodId} className="market-tip-card__chip market-tip-card__chip--cheap">
+                      {GOODS[goodId]!.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="market-tip-card__empty muted small">No clear specialty.</span>
+                )}
+              </div>
+            </div>
+            <div className="market-tip-card__group">
+              <span className="market-tip-card__label">Wanted here</span>
+              <div className="market-tip-card__chips">
+                {wantedGoodIds.length > 0 ? (
+                  wantedGoodIds.map((goodId) => (
+                    <span key={goodId} className="market-tip-card__chip market-tip-card__chip--wanted">
+                      {GOODS[goodId]!.name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="market-tip-card__empty muted small">No strong demand signal.</span>
+                )}
+              </div>
+            </div>
+            <div className="market-tip-card__group">
+              <span className="market-tip-card__label">Thriving industries</span>
+              <div className="market-tip-card__chips">
+                {economyProfile.thrivingIndustries.map((industry) => (
+                  <span key={industry} className="market-tip-card__chip">
+                    {industry}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className="market-tip-card__group">
+              <span className="market-tip-card__label">Why buyers pay here</span>
+              <div className="trade-row__details-meta muted small">
+                {economyProfile.importDemand.slice(0, 4).map((entry) => (
+                  <span key={entry.goodId}>
+                    <strong>{GOODS[entry.goodId]!.name}:</strong> {entry.reason}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         {showLore && story && (
-          <p className="market-screen__story market-screen__story--expanded">{story}</p>
+          <>
+            <p className="market-screen__story market-screen__story--expanded">{story}</p>
+            <p className="market-screen__story market-screen__story--expanded">
+              {economyProfile.marketBackstory}
+            </p>
+            <p className="market-screen__story market-screen__story--expanded">
+              Thriving industries: {economyProfile.thrivingIndustries.join(', ')}.
+            </p>
+          </>
         )}
 
         {lastError && (
@@ -462,7 +566,7 @@ export function TownScreen() {
                 <p className="market-column__empty">Nothing in stock.</p>
               ) : (
                 <ul className="trade-list">
-                  {buyEntries.map(({ id, offer, offers, isPrimary, trend, seasonLabel, sparklineData }) => {
+                  {buyEntries.map(({ id, offer, isPrimary, trend, seasonLabel, sparklineData }) => {
                     const good = GOODS[id]!
                     const key = rowKey('buy', id)
                     const inCart = cart.find(
@@ -484,9 +588,6 @@ export function TownScreen() {
                           <div className="trade-row__name">
                             <div className="trade-row__name-line">
                               <strong>{good.name}</strong>
-                              <span className="trade-row__merchant-pill">
-                                {offer.merchant.roleLabel}: {offer.merchant.label}
-                              </span>
                               {inCart ? (
                                 <span className="trade-row__cart-chip">Cart ×{inCart.qty}</span>
                               ) : null}
@@ -558,7 +659,7 @@ export function TownScreen() {
                             className="trade-row__btn trade-row__btn--buy"
                             disabled={maxQty <= 0}
                             onClick={() =>
-                              requestTrade('buy', id, qty, offer.merchant.id, offer.merchant.label, offer.row.buy)
+                              requestTrade('buy', id, qty, offer.merchant.id, offer.row.buy)
                             }
                           >
                             {qty === 1 ? 'Buy now' : `Buy ×${qty}`}
@@ -582,20 +683,6 @@ export function TownScreen() {
                         {isExpanded ? (
                           <div className="trade-row__details">
                             <p className="trade-row__details-copy">{getDialog(good.dialogFlavorId)}</p>
-                            <div className="trade-row__offer-list">
-                              {offers.map((localOffer) => (
-                                <span
-                                  key={`${id}-${localOffer.merchant.id}`}
-                                  className={
-                                    localOffer.merchant.id === offer.merchant.id
-                                      ? 'trade-row__offer-pill trade-row__offer-pill--best'
-                                      : 'trade-row__offer-pill'
-                                  }
-                                >
-                                  {localOffer.merchant.label}: {localOffer.row.buy}g
-                                </span>
-                              ))}
-                            </div>
                           </div>
                         ) : null}
                       </li>
@@ -621,10 +708,11 @@ export function TownScreen() {
                       id,
                       count,
                       offer,
-                      offers,
                       avgBuy,
                       sellDelta,
                       isWanted,
+                      isFallback,
+                      demandReason,
                       weight,
                       trend,
                       seasonLabel,
@@ -651,15 +739,6 @@ export function TownScreen() {
                             <div className="trade-row__name">
                               <div className="trade-row__name-line">
                                 <strong>{good.name}</strong>
-                                {offer ? (
-                                  <span className="trade-row__merchant-pill">
-                                    Best buyer: {offer.merchant.label}
-                                  </span>
-                                ) : (
-                                  <span className="trade-row__merchant-pill trade-row__merchant-pill--muted">
-                                    No local buyer
-                                  </span>
-                                )}
                                 {inCart ? (
                                   <span className="trade-row__cart-chip trade-row__cart-chip--sell">
                                     Cart ×{inCart.qty}
@@ -686,6 +765,11 @@ export function TownScreen() {
                                   {isWanted ? (
                                     <span className="trade-row__badge trade-row__badge--wanted" title="This town pays above its usual market baseline for this good">
                                       Wanted here
+                                    </span>
+                                  ) : null}
+                                  {isFallback ? (
+                                    <span className="trade-row__badge" title="If no named stall is posting for this good, local quartermasters, inns, docks, and street buyers still offer a lower townwide price">
+                                      Town buyers
                                     </span>
                                   ) : null}
                                   {seasonLabel ? (
@@ -747,7 +831,7 @@ export function TownScreen() {
                               disabled={!offer}
                               onClick={() => {
                                 if (!offer) return
-                                requestTrade('sell', id, qty, offer.merchant.id, offer.merchant.label, offer.row.sell)
+                                requestTrade('sell', id, qty, offer.merchant.id, offer.row.sell)
                               }}
                             >
                               {qty === 1 ? 'Sell now' : `Sell ×${qty}`}
@@ -772,27 +856,8 @@ export function TownScreen() {
                           {isExpanded ? (
                             <div className="trade-row__details">
                               <p className="trade-row__details-copy">{getDialog(good.dialogFlavorId)}</p>
-                              <div className="trade-row__offer-list">
-                                {offers.length ? (
-                                  offers.map((localOffer) => (
-                                    <span
-                                      key={`${id}-${localOffer.merchant.id}`}
-                                      className={
-                                        offer && localOffer.merchant.id === offer.merchant.id
-                                          ? 'trade-row__offer-pill trade-row__offer-pill--best'
-                                          : 'trade-row__offer-pill'
-                                      }
-                                    >
-                                      {localOffer.merchant.label}: {localOffer.row.sell}g
-                                    </span>
-                                  ))
-                                ) : (
-                                  <span className="trade-row__offer-pill trade-row__offer-pill--muted">
-                                    Nobody in town is buying this good right now.
-                                  </span>
-                                )}
-                              </div>
                               <div className="trade-row__details-meta muted small">
+                                {demandReason ? <span>Local demand: {demandReason}</span> : null}
                                 {avgBuy !== null ? (
                                   <span>
                                     Avg buy: {avgBuy === Math.floor(avgBuy) ? avgBuy : avgBuy.toFixed(1)}g
@@ -813,44 +878,6 @@ export function TownScreen() {
           </div>
 
           <aside className="trade-sidebar">
-            <div className="market-tip-card">
-              <div className="market-tip-card__header">
-                <h3 className="market-tip-card__title">Market tip</h3>
-                <span className="muted small">Regional read</span>
-              </div>
-              <p className="market-tip-card__hint muted small">
-                Cheap here shows what this town is known for selling. Wanted here shows what usually earns a premium.
-              </p>
-              <div className="market-tip-card__group">
-                <span className="market-tip-card__label">Cheap here</span>
-                <div className="market-tip-card__chips">
-                  {primaryGoodIds.length > 0 ? (
-                    primaryGoodIds.map((goodId) => (
-                      <span key={goodId} className="market-tip-card__chip market-tip-card__chip--cheap">
-                        {GOODS[goodId]!.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="market-tip-card__empty muted small">No clear specialty.</span>
-                  )}
-                </div>
-              </div>
-              <div className="market-tip-card__group">
-                <span className="market-tip-card__label">Wanted here</span>
-                <div className="market-tip-card__chips">
-                  {wantedGoodIds.length > 0 ? (
-                    wantedGoodIds.map((goodId) => (
-                      <span key={goodId} className="market-tip-card__chip market-tip-card__chip--wanted">
-                        {GOODS[goodId]!.name}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="market-tip-card__empty muted small">No strong demand signal.</span>
-                  )}
-                </div>
-              </div>
-            </div>
-
             <div className="trade-summary-card">
               <div className="trade-summary-card__header">
                 <div>
@@ -946,8 +973,10 @@ export function TownScreen() {
                 <ul className="cart-list">
                   {cart.map((item) => {
                     const good = GOODS[item.goodId]
-                    const merchant = merchants.find((entry) => entry.id === item.merchantId)
-                    const row = effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
+                    const row =
+                      item.kind === 'buy'
+                        ? effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
+                        : effectiveSellPriceRow(game.location, item.merchantId, item.goodId, game.day)
                     const unitPrice = row ? (item.kind === 'buy' ? row.buy : row.sell) : 0
                     const total = unitPrice * item.qty
                     const weight = good ? good.weightPerUnit * item.qty : 0
@@ -959,9 +988,6 @@ export function TownScreen() {
                         </span>
                         <span className="cart-row__name-block">
                           <span className="cart-row__name">{good?.name ?? item.goodId}</span>
-                          <span className="cart-row__merchant muted small">
-                            {merchant?.label ?? item.merchantId}
-                          </span>
                         </span>
                         <div className="cart-row__qty-wrap">
                           <button
@@ -1046,16 +1072,12 @@ export function TownScreen() {
                   Buy <strong>{pendingTrade.qty}</strong> × {GOODS[pendingTrade.goodId]!.name} at{' '}
                   <strong>{pendingTrade.unitGold}</strong>g each?
                   <br />
-                  <span className="trade-confirm-dialog__merchant">Merchant: {pendingTrade.merchantLabel}</span>
-                  <br />
                   <span className="trade-confirm-dialog__total">Total: {pendingTrade.totalGold}g</span>
                 </>
               ) : (
                 <>
                   Sell <strong>{pendingTrade.qty}</strong> × {GOODS[pendingTrade.goodId]!.name} at{' '}
                   <strong>{pendingTrade.unitGold}</strong>g each?
-                  <br />
-                  <span className="trade-confirm-dialog__merchant">Buyer: {pendingTrade.merchantLabel}</span>
                   <br />
                   <span className="trade-confirm-dialog__total">You receive: {pendingTrade.totalGold}g</span>
                 </>
