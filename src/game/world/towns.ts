@@ -11,6 +11,8 @@ export const TOWNS: Record<TownId, Town> = {
   riversend: { id: 'riversend', name: 'Riversend' },
   crownpost: { id: 'crownpost', name: 'Crownpost' },
   fenward: { id: 'fenward', name: 'Fenward' },
+  stoneholt: { id: 'stoneholt', name: 'Stoneholt' },
+  saltmere: { id: 'saltmere', name: 'Saltmere' },
 }
 
 export const TOWN_IDS = Object.keys(TOWNS) as TownId[]

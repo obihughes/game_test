@@ -3,6 +3,7 @@ import { findRoute, ROUTES, TOWNS, type Town } from '@/game/world/index.ts'
 import { MAP_POSITIONS } from '@/content/mapLayout.ts'
 import { MapLocationGlyph } from '@/ui/icons/LocationPixelIcon.tsx'
 import { mapTheme } from './mapTheme.ts'
+import { edgeBend, roadPathD } from './mapEdgeGeometry.ts'
 import styles from './map.module.css'
 
 interface MapViewProps {
@@ -40,14 +41,12 @@ export function MapView({ location, onSelectTown }: MapViewProps) {
         const a = MAP_POSITIONS[e.from as keyof typeof MAP_POSITIONS]
         const b = MAP_POSITIONS[e.to as keyof typeof MAP_POSITIONS]
         if (!a || !b) return null
+        const bend = edgeBend(e.from, e.to)
         return (
-          <line
+          <path
             key={`${e.from}-${e.to}`}
             className={styles.road}
-            x1={a.x}
-            y1={a.y}
-            x2={b.x}
-            y2={b.y}
+            d={roadPathD(a.x, a.y, b.x, b.y, bend)}
           />
         )
       })}
@@ -75,9 +74,14 @@ export function MapView({ location, onSelectTown }: MapViewProps) {
               }}
             />
             <g style={{ pointerEvents: 'none' as const }} opacity={dim ? 0.45 : 1}>
-              <MapLocationGlyph townId={t.id} x={pos.x} y={pos.y} size={here ? 8.5 : 6.5} />
+              <MapLocationGlyph townId={t.id} x={pos.x} y={pos.y} size={here ? 9 : 7} />
             </g>
-            <text className={styles.label} x={pos.x} y={pos.y - 12}>
+            <text
+              className={styles.label}
+              x={pos.x + (pos.labelDx ?? 0)}
+              y={pos.y + (pos.labelDy ?? -7)}
+              textAnchor={pos.labelAnchor ?? 'middle'}
+            >
               {t.name}
             </text>
           </g>

@@ -115,6 +115,48 @@ export const GOODS: Record<GoodId, Good> = {
     dialogFlavorId: 'good_fen_spice',
     icon: '🧄',
   },
+  coal: {
+    id: 'coal',
+    name: 'Sack of coal',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_coal',
+    icon: '🪨',
+  },
+  metal_tools: {
+    id: 'metal_tools',
+    name: 'Iron tools (crate)',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_metal_tools',
+    icon: '🔨',
+  },
+  grain: {
+    id: 'grain',
+    name: 'Grain sack',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_grain',
+    icon: '🌾',
+  },
+  timber: {
+    id: 'timber',
+    name: 'Timber bundle',
+    weightPerUnit: 3,
+    dialogFlavorId: 'good_timber',
+    icon: '🪵',
+  },
+  pitch: {
+    id: 'pitch',
+    name: 'Pitch barrel',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_pitch',
+    icon: '🛢️',
+  },
+  tallow: {
+    id: 'tallow',
+    name: 'Tallow candles',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_tallow',
+    icon: '🕯️',
+  },
 }
 
 export const GOOD_IDS = Object.keys(GOODS) as GoodId[]

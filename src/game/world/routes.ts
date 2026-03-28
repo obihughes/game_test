@@ -26,6 +26,12 @@ export const ROUTES: Route[] = [
   { from: 'riversend', to: 'fenward', baseDays: 2, toll: 6 },
   { from: 'crownpost', to: 'fenward', baseDays: 3, toll: 5 },
   { from: 'fenward', to: 'crownpost', baseDays: 3, toll: 5 },
+  // Stoneholt — mountain spur above Ashenford (harsh winter road)
+  { from: 'ashenford', to: 'stoneholt', baseDays: 2, toll: 0 },
+  { from: 'stoneholt', to: 'ashenford', baseDays: 2, toll: 0 },
+  // Saltmere — salt coast spur south of Riversend
+  { from: 'riversend', to: 'saltmere', baseDays: 2, toll: 3 },
+  { from: 'saltmere', to: 'riversend', baseDays: 2, toll: 3 },
 ]
 
 export function findRoute(from: TownId, to: TownId): Route | undefined {

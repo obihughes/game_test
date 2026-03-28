@@ -12,6 +12,10 @@ export const LOCATION_STORIES: Record<TownId, string> = {
     'Crownpost grew where the old toll ring met a crown warehouse of stamped resin and sealed wax. Clerks argue in three languages; carts queue under banners that never quite match the season. Amber and duty receipts stack higher than common sense.',
   fenward:
     'Fenward is a line of stilt sheds above sucking mud, where spice crates steam in the cold and pole-lamps throw long shadows. What the fen does not swallow, the night market sells twice — once before midnight and once after.',
+  stoneholt:
+    'Stoneholt is a mining camp carved into the high pass above Ashenford, where the mountain gives up coal and iron in exchange for everything else. Lanterns burn at noon in the tunnels; the men who work them eat whatever the road brings up, and pay whatever it costs.',
+  saltmere:
+    'Saltmere clings to the salt flats south of Riversend, where shallow pans bake in the sun and the wind carries brine a mile inland. The town exists for one reason — salt — and trades everything it cannot make for whatever the coast road will carry.',
 }
 
 /** Layered gradients for the market panel; keyed by town id. */
@@ -40,6 +44,16 @@ const LOCATION_PANEL_BACKGROUNDS: Record<string, string> = {
     'radial-gradient(ellipse 90% 70% at 30% 100%, rgba(45, 75, 55, 0.35) 0%, transparent 50%)',
     'radial-gradient(circle at 70% 10%, rgba(60, 90, 70, 0.12) 0%, transparent 35%)',
     'linear-gradient(185deg, #0c100e 0%, #081210 50%, #060d0c 100%)',
+  ].join(', '),
+  stoneholt: [
+    'radial-gradient(ellipse 110% 80% at 20% 95%, rgba(60, 50, 40, 0.45) 0%, transparent 55%)',
+    'radial-gradient(circle at 75% 25%, rgba(120, 100, 70, 0.10) 0%, transparent 40%)',
+    'linear-gradient(175deg, #100e0c 0%, #0a0806 50%, #0e0c0a 100%)',
+  ].join(', '),
+  saltmere: [
+    'radial-gradient(ellipse 120% 90% at 50% 100%, rgba(80, 110, 130, 0.35) 0%, transparent 55%)',
+    'radial-gradient(circle at 15% 20%, rgba(200, 220, 230, 0.07) 0%, transparent 35%)',
+    'linear-gradient(190deg, #0a0f12 0%, #060c10 50%, #0b1016 100%)',
   ].join(', '),
 }
 

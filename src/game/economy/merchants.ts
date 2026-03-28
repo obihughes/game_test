@@ -12,6 +12,12 @@ export type MerchantTradeRole =
   | 'fishmonger'
   | 'harbor_factor'
   | 'night_market'
+  | 'mine_factor'
+  | 'supply_post'
+  | 'salt_factor'
+  | 'coastal_trader'
+  | 'grain_merchant'
+  | 'tallow_chandler'
 
 export interface MerchantDef {
   id: MerchantId
@@ -31,12 +37,13 @@ const ASHENFORD: MerchantDef[] = [
     role: 'blacksmith',
     roleLabel: 'Blacksmith',
     label: 'Hearth & Hammer',
-    tagline: 'Iron runs cheap where the mountain bleeds.',
+    tagline: 'Iron and coal run cheap where the mountain bleeds.',
     icon: '🔥',
     catalog: {
-      iron: { buy: 11, sell: 7 },
-      obsidian_glass: { buy: 14, sell: 9 },
-      rope: { buy: 9, sell: 5 },
+      iron: { buy: 10, sell: 6 },
+      coal: { buy: 8, sell: 5 },
+      metal_tools: { buy: 18, sell: 11 },
+      obsidian_glass: { buy: 13, sell: 8 },
     },
   },
   {
@@ -44,15 +51,19 @@ const ASHENFORD: MerchantDef[] = [
     role: 'general_market',
     roleLabel: 'Market hall',
     label: 'Ash Market stall',
-    tagline: 'Bolt silk, salted barrels, whatever the crown road brings.',
+    tagline: 'Miners need salt, fish, and grain — and pay dearly for all three.',
     icon: '🛒',
     catalog: {
       silk: { buy: 28, sell: 17 },
       wine: { buy: 16, sell: 9 },
       salt: { buy: 22, sell: 13 },
+      fresh_fish: { buy: 16, sell: 10 },
       salted_fish: { buy: 26, sell: 15 },
       smoked_fish: { buy: 32, sell: 19 },
+      grain: { buy: 16, sell: 10 },
+      tallow: { buy: 14, sell: 8 },
       herbs: { buy: 12, sell: 7 },
+      rope: { buy: 9, sell: 5 },
     },
   },
 ]
@@ -63,13 +74,15 @@ const MIRECROSS: MerchantDef[] = [
     role: 'fen_gatherer',
     roleLabel: 'Fen gatherer',
     label: 'Fen reed-merchant',
-    tagline: 'Peat bricks, river catch, and mossy remedies from the fog.',
+    tagline: 'Peat, timber, and river catch — the fen provides what the road forgets.',
     icon: '🌫️',
     catalog: {
-      peat: { buy: 6, sell: 4 },
+      peat: { buy: 5, sell: 3 },
+      timber: { buy: 11, sell: 7 },
       fresh_fish: { buy: 10, sell: 6 },
       fish_sauce: { buy: 44, sell: 27 },
-      herbs: { buy: 8, sell: 5 },
+      herbs: { buy: 7, sell: 4 },
+      tallow: { buy: 9, sell: 5 },
     },
   },
   {
@@ -77,14 +90,17 @@ const MIRECROSS: MerchantDef[] = [
     role: 'dry_goods_post',
     roleLabel: 'Dry goods',
     label: 'Reed House trading post',
-    tagline: 'Silk off the crown road, rope that does not rot too fast.',
+    tagline: 'Iron and coal cost blood here — bring some from the mountain.',
     icon: '🏚️',
     catalog: {
       silk: { buy: 24, sell: 14 },
       rope: { buy: 8, sell: 5 },
       wine: { buy: 13, sell: 8 },
       salt: { buy: 18, sell: 11 },
-      iron: { buy: 24, sell: 14 },
+      iron: { buy: 26, sell: 16 },
+      coal: { buy: 20, sell: 12 },
+      metal_tools: { buy: 28, sell: 17 },
+      grain: { buy: 10, sell: 6 },
     },
   },
   {
@@ -96,8 +112,8 @@ const MIRECROSS: MerchantDef[] = [
     icon: '🐸',
     catalog: {
       dreaming_moss: { buy: 7, sell: 4 },
-      herbs: { buy: 8, sell: 5 },
-      peat: { buy: 6, sell: 4 },
+      herbs: { buy: 7, sell: 4 },
+      peat: { buy: 5, sell: 3 },
     },
   },
 ]
@@ -111,10 +127,10 @@ const RIVERSEND: MerchantDef[] = [
     tagline: 'Fresh catch cheap as river water; we buy back what you cure.',
     icon: '🎣',
     catalog: {
-      fresh_fish: { buy: 8, sell: 5 },
-      salted_fish: { buy: 22, sell: 13 },
-      smoked_fish: { buy: 28, sell: 17 },
-      salt: { buy: 12, sell: 7 },
+      fresh_fish: { buy: 6, sell: 4 },
+      salted_fish: { buy: 20, sell: 12 },
+      smoked_fish: { buy: 26, sell: 16 },
+      salt: { buy: 8, sell: 5 },
       peat: { buy: 8, sell: 5 },
     },
   },
@@ -123,13 +139,17 @@ const RIVERSEND: MerchantDef[] = [
     role: 'harbor_factor',
     roleLabel: 'Harbor factor',
     label: 'Harbor factor',
-    tagline: 'Tar, rope, and luxe bolts off the last ship that tied up.',
+    tagline: 'Ships need pitch, rope, and timber — all dear when the tide is in.',
     icon: '⚓',
     catalog: {
       rope: { buy: 7, sell: 4 },
+      pitch: { buy: 22, sell: 13 },
+      timber: { buy: 24, sell: 14 },
       wine: { buy: 18, sell: 11 },
       silk: { buy: 34, sell: 20 },
-      iron: { buy: 20, sell: 12 },
+      coal: { buy: 22, sell: 13 },
+      metal_tools: { buy: 32, sell: 19 },
+      grain: { buy: 18, sell: 11 },
     },
   },
   {
@@ -143,6 +163,7 @@ const RIVERSEND: MerchantDef[] = [
       herbs: { buy: 7, sell: 4 },
       dreaming_moss: { buy: 9, sell: 5 },
       fish_sauce: { buy: 38, sell: 23 },
+      iron: { buy: 20, sell: 12 },
     },
   },
 ]
@@ -157,11 +178,13 @@ const CROWNPOST: MerchantDef[] = [
     icon: '🏛️',
     catalog: {
       crown_amber: { buy: 42, sell: 26 },
-      wine: { buy: 15, sell: 9 },
-      silk: { buy: 30, sell: 18 },
+      wine: { buy: 14, sell: 8 },
+      silk: { buy: 28, sell: 17 },
+      grain: { buy: 10, sell: 6 },
       herbs: { buy: 11, sell: 6 },
       smoked_fish: { buy: 34, sell: 20 },
       fish_sauce: { buy: 48, sell: 29 },
+      tallow: { buy: 13, sell: 8 },
     },
   },
   {
@@ -169,13 +192,17 @@ const CROWNPOST: MerchantDef[] = [
     role: 'dry_goods_post',
     roleLabel: 'Road factor',
     label: 'Post road factor',
-    tagline: 'Iron, rope, and glass for caravans sworn to the long bend.',
+    tagline: 'Coal, timber, and tools — the crown road eats them faster than we stock them.',
     icon: '📦',
     catalog: {
       iron: { buy: 13, sell: 8 },
       rope: { buy: 10, sell: 6 },
       obsidian_glass: { buy: 15, sell: 9 },
       salt: { buy: 20, sell: 12 },
+      coal: { buy: 18, sell: 11 },
+      timber: { buy: 22, sell: 13 },
+      metal_tools: { buy: 26, sell: 16 },
+      pitch: { buy: 20, sell: 12 },
     },
   },
 ]
@@ -186,11 +213,13 @@ const FENWARD: MerchantDef[] = [
     role: 'fen_gatherer',
     roleLabel: 'Spice broker',
     label: 'Stilt market',
-    tagline: 'Spice from the fen edge; peat, moss, and smoked goods for those who slog through.',
+    tagline: 'Pitch, spice, and timber from the fen edge — bring grain if you want to eat.',
     icon: '🛖',
     catalog: {
-      fen_spice: { buy: 38, sell: 22 },
-      peat: { buy: 7, sell: 4 },
+      fen_spice: { buy: 36, sell: 21 },
+      peat: { buy: 6, sell: 3 },
+      pitch: { buy: 11, sell: 7 },
+      timber: { buy: 12, sell: 7 },
       dreaming_moss: { buy: 8, sell: 5 },
       fresh_fish: { buy: 11, sell: 6 },
       smoked_fish: { buy: 36, sell: 22 },
@@ -202,12 +231,81 @@ const FENWARD: MerchantDef[] = [
     role: 'night_market',
     roleLabel: 'Night dock',
     label: 'Night dock',
-    tagline: 'Dreaming moss and iron when the fog lifts.',
+    tagline: 'Grain, tools, and coal — the fen pays dearly for what it cannot make.',
     icon: '🌑',
     catalog: {
       dreaming_moss: { buy: 10, sell: 6 },
-      iron: { buy: 18, sell: 11 },
       herbs: { buy: 9, sell: 5 },
+      grain: { buy: 20, sell: 12 },
+      coal: { buy: 22, sell: 13 },
+      metal_tools: { buy: 34, sell: 21 },
+      salt: { buy: 18, sell: 11 },
+    },
+  },
+]
+
+const STONEHOLT: MerchantDef[] = [
+  {
+    id: 'stoneholt_mine_factor',
+    role: 'mine_factor',
+    roleLabel: 'Mine factor',
+    label: 'Deep Seam trading post',
+    tagline: 'Coal and iron straight from the rock — cheapest this side of the mountain.',
+    icon: '⛏️',
+    catalog: {
+      coal: { buy: 6, sell: 4 },
+      iron: { buy: 9, sell: 5 },
+      metal_tools: { buy: 16, sell: 10 },
+      obsidian_glass: { buy: 11, sell: 7 },
+    },
+  },
+  {
+    id: 'stoneholt_supply_post',
+    role: 'supply_post',
+    roleLabel: 'Supply post',
+    label: "Miner's supply post",
+    tagline: 'Grain, wine, and silk cost double up here — but the miners will pay it.',
+    icon: '🏕️',
+    catalog: {
+      grain: { buy: 20, sell: 12 },
+      wine: { buy: 22, sell: 13 },
+      herbs: { buy: 15, sell: 9 },
+      silk: { buy: 32, sell: 19 },
+      rope: { buy: 11, sell: 6 },
+      salt: { buy: 24, sell: 14 },
+    },
+  },
+]
+
+const SALTMERE: MerchantDef[] = [
+  {
+    id: 'saltmere_salt_factor',
+    role: 'salt_factor',
+    roleLabel: 'Salt factor',
+    label: 'Pan & brine house',
+    tagline: 'Salt evaporated from the coast flats — cheapest salt on the road.',
+    icon: '🧂',
+    catalog: {
+      salt: { buy: 6, sell: 4 },
+      fresh_fish: { buy: 5, sell: 3 },
+      pitch: { buy: 10, sell: 6 },
+      rope: { buy: 5, sell: 3 },
+    },
+  },
+  {
+    id: 'saltmere_coastal_trader',
+    role: 'coastal_trader',
+    roleLabel: 'Coastal trader',
+    label: 'Saltmere quayside stall',
+    tagline: 'We fish and salt — bring grain, coal, and tools or go hungry with us.',
+    icon: '🌊',
+    catalog: {
+      grain: { buy: 20, sell: 12 },
+      coal: { buy: 24, sell: 14 },
+      metal_tools: { buy: 34, sell: 21 },
+      timber: { buy: 26, sell: 16 },
+      salted_fish: { buy: 18, sell: 11 },
+      smoked_fish: { buy: 24, sell: 14 },
     },
   },
 ]
@@ -218,6 +316,8 @@ export const MERCHANTS_BY_TOWN: Record<TownId, MerchantDef[]> = {
   riversend: RIVERSEND,
   crownpost: CROWNPOST,
   fenward: FENWARD,
+  stoneholt: STONEHOLT,
+  saltmere: SALTMERE,
 }
 
 export function merchantsForTown(townId: TownId): MerchantDef[] {

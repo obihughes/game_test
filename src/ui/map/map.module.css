@@ -35,16 +35,17 @@
 
 .road {
   stroke: var(--map-road, #6b5540);
-  stroke-width: 1.8;
+  stroke-width: 0.58;
   stroke-linecap: round;
-  stroke-dasharray: 4 2;
+  stroke-dasharray: 2.6 2;
   fill: none;
 }
 
 .roadHighlight {
   stroke: #c9a66b;
-  stroke-width: 2.5;
+  stroke-width: 0.95;
   stroke-linecap: round;
+  stroke-dasharray: 2.6 2;
   fill: none;
 }
 
@@ -68,19 +69,24 @@
 
 .label {
   font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: 5.5px;
+  font-size: 3.15px;
   fill: var(--map-label, #f2e6d4);
   text-anchor: middle;
   pointer-events: none;
-  letter-spacing: 0.015em;
+  letter-spacing: 0.03em;
 }
 
 .routeLabel {
   font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: 3.8px;
-  fill: #7a6a58;
+  font-size: 2.85px;
+  font-weight: 600;
+  fill: #8f7f6c;
   text-anchor: middle;
   pointer-events: none;
+  paint-order: stroke fill;
+  stroke: #100e0b;
+  stroke-width: 0.42px;
+  stroke-opacity: 0.92;
 }
 
 /* Info panel sits in the sidebar */

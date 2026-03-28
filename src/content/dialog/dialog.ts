@@ -32,7 +32,15 @@ export const DIALOG: Record<string, string> = {
   good_dreaming_moss: 'Sleeps when you do not. Do not ask which.',
   good_crown_amber: 'Tree-blood set like honey; the crown tax man smiles anyway.',
   good_fen_spice: 'Pungent enough to wake the dead — or at least the cook.',
+  good_coal: 'Black rock that burns hot and leaves everything it touches grey.',
+  good_metal_tools: 'Hammers, chisels, and blades — the kind of weight that earns its keep.',
+  good_grain: 'Sacked and sealed; whoever controls the grain controls the winter.',
+  good_timber: 'Heavy enough to make your axle groan, worth it when the docks need planking.',
+  good_pitch: 'Thick, black, and stubborn — ships drink it, roads hate it.',
+  good_tallow: 'Rendered fat pressed into candles; miners and clerks alike curse the dark without it.',
   ui_welcome: 'You arrive under a pale sky. Markets cough smoke; carts groan.',
+  ui_welcome_stoneholt: 'The pass narrows to a cut in the rock. Lanterns burn at noon here.',
+  ui_welcome_saltmere: 'Salt-flat wind stings the eyes. The whole town smells of brine and low tide.',
 }
 
 export function getDialog(key: string): string {

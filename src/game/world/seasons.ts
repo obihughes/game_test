@@ -40,6 +40,11 @@ export function getSeasonPriceMultiplier(goodId: GoodId, day: number): number {
     salt:         { winter: 1.15 },
     rope:         { spring: 1.10, autumn: 0.90 },
     grain:        { autumn: 0.80, spring: 1.15 },
+    coal:         { winter: 1.50, summer: 0.75 },
+    timber:       { spring: 1.10, winter: 0.90 },
+    pitch:        { summer: 1.15, winter: 0.80 },
+    tallow:       { winter: 1.30, summer: 0.85 },
+    metal_tools:  { spring: 1.05, autumn: 0.95 },
   }
   return modifiers[goodId]?.[season] ?? 1.0
 }

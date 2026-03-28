@@ -55,6 +55,22 @@ export const PROCESSING_RECIPES: ProcessingRecipe[] = [
     outputs: [{ goodId: 'fish_sauce', qty: 1 }],
     description: 'Age salted fish in sealed jugs until they break down into pungent, prized fish sauce.',
   },
+  {
+    id: 'render_tallow',
+    label: 'Render tallow candles',
+    inputs: [{ goodId: 'peat', qty: 3 }],
+    goldCost: 2,
+    outputs: [{ goodId: 'tallow', qty: 2 }],
+    description: 'Burn peat down to rendered fat and wick it into tallow candles — cheap light for dark towns.',
+  },
+  {
+    id: 'char_coal',
+    label: 'Char timber → coal',
+    inputs: [{ goodId: 'timber', qty: 2 }],
+    goldCost: 3,
+    outputs: [{ goodId: 'coal', qty: 3 }],
+    description: 'Slow-char timber bundles in a sealed kiln to produce dense coal bricks worth far more than the wood.',
+  },
 ]
 
 function warehouseWeight(stored: Partial<Record<GoodId, number>>): number {

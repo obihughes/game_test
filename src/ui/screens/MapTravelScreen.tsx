@@ -11,6 +11,7 @@ import { GOOD_IDS, GOODS } from '@/game/economy/index.ts'
 import { dailyHireCost } from '@/game/caravan/actions.ts'
 import { useGameStore } from '@/store/gameStore.ts'
 import styles from '@/ui/map/map.module.css'
+import { edgeBend, roadLabelAnchor, roadPathD } from '@/ui/map/mapEdgeGeometry.ts'
 
 export function MapTravelScreen() {
   const game = useGameStore((s) => s.game)
@@ -52,7 +53,9 @@ export function MapTravelScreen() {
           const b = MAP_POSITIONS[e.to as keyof typeof MAP_POSITIONS]
           if (!a || !b) return null
           const route = findRoute(e.from, e.to) ?? findRoute(e.to, e.from)
-          return { key: `${e.from}-${e.to}`, from: e.from, to: e.to, mx: (a.x + b.x) / 2, my: (a.y + b.y) / 2, days: route?.baseDays ?? 0 }
+          const bend = edgeBend(e.from, e.to)
+          const { mx, my } = roadLabelAnchor(a.x, a.y, b.x, b.y, bend)
+          return { key: `${e.from}-${e.to}`, from: e.from, to: e.to, mx, my, days: route?.baseDays ?? 0 }
         })
         .filter(Boolean) as { key: string; from: string; to: string; mx: number; my: number; days: number }[],
     [edges],
@@ -147,15 +150,14 @@ export function MapTravelScreen() {
               ((e.from === game.location && e.to === hoveredTown) ||
                 (e.to === game.location && e.from === hoveredTown))
             const isActiveRoute = e.from === game.location || e.to === game.location
+            const bend = edgeBend(e.from, e.to)
+            const d = roadPathD(a.x, a.y, b.x, b.y, bend)
             return (
-              <line
+              <path
                 key={`${e.from}-${e.to}`}
                 className={isHoveredRoute ? styles.roadHighlight : styles.road}
-                x1={a.x}
-                y1={a.y}
-                x2={b.x}
-                y2={b.y}
-                opacity={isHoveredRoute ? 1 : isActiveRoute ? 0.8 : 0.38}
+                d={d}
+                opacity={isHoveredRoute ? 1 : isActiveRoute ? 0.78 : 0.3}
               />
             )
           })}
@@ -167,8 +169,8 @@ export function MapTravelScreen() {
                 key={m.key}
                 className={styles.routeLabel}
                 x={m.mx}
-                y={m.my + 1.5}
-                opacity={isActive ? 0.9 : 0.28}
+                y={m.my + 1.1}
+                opacity={isActive ? 0.92 : 0.34}
               >
                 {m.days}d
               </text>
@@ -202,13 +204,14 @@ export function MapTravelScreen() {
                     townId={t.id}
                     x={pos.x}
                     y={pos.y}
-                    size={here ? 9 : isHovered && canGo ? 8 : 7}
+                    size={here ? 9.5 : isHovered && canGo ? 8.5 : 7.5}
                   />
                 </g>
                 <text
                   className={styles.label}
-                  x={pos.x}
-                  y={pos.y - 9}
+                  x={pos.x + (pos.labelDx ?? 0)}
+                  y={pos.y + (pos.labelDy ?? -7)}
+                  textAnchor={pos.labelAnchor ?? 'middle'}
                   opacity={dim ? 0.35 : 1}
                   fontWeight={here ? '700' : isHovered ? '600' : '500'}
                 >
