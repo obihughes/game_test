@@ -36,7 +36,7 @@ const ASHENFORD: MerchantDef[] = [
     catalog: {
       iron: { buy: 11, sell: 7 },
       obsidian_glass: { buy: 14, sell: 9 },
-      chain_gang_tools: { buy: 26, sell: 16 },
+      rope: { buy: 9, sell: 5 },
     },
   },
   {
@@ -51,18 +51,6 @@ const ASHENFORD: MerchantDef[] = [
       wine: { buy: 16, sell: 9 },
       salt: { buy: 22, sell: 13 },
       fish: { buy: 24, sell: 14 },
-      rope: { buy: 9, sell: 5 },
-    },
-  },
-  {
-    id: 'ashenford_binder',
-    role: 'bonds_scribe',
-    roleLabel: 'Scribe & bonds',
-    label: 'Binder of contracts',
-    tagline: 'Passage debt and the herbs that keep hands steady enough to sign.',
-    icon: '📋',
-    catalog: {
-      indenture_scroll: { buy: 45, sell: 28 },
       herbs: { buy: 12, sell: 7 },
     },
   },
@@ -102,12 +90,12 @@ const MIRECROSS: MerchantDef[] = [
     role: 'occult_merchant',
     roleLabel: 'Occult trader',
     label: 'The moss witch',
-    tagline: 'Bottled voices, lucky bones, no refunds if you dream wrong.',
+    tagline: 'Dreaming moss and fen remedies — no refunds if you dream wrong.',
     icon: '🐸',
     catalog: {
       dreaming_moss: { buy: 7, sell: 4 },
-      bottled_echo: { buy: 28, sell: 17 },
-      lucky_carp_bone: { buy: 18, sell: 11 },
+      herbs: { buy: 8, sell: 5 },
+      peat: { buy: 6, sell: 4 },
     },
   },
 ]
@@ -118,12 +106,12 @@ const RIVERSEND: MerchantDef[] = [
     role: 'fishmonger',
     roleLabel: 'Fishmonger',
     label: 'Smoke & scales',
-    tagline: 'Fish cheap as river water; salt and tokens from the catch.',
+    tagline: 'Fish cheap as river water; salt and peat from the catch.',
     icon: '🎣',
     catalog: {
       fish: { buy: 7, sell: 4 },
       salt: { buy: 12, sell: 7 },
-      lucky_carp_bone: { buy: 14, sell: 8 },
+      peat: { buy: 8, sell: 5 },
     },
   },
   {
@@ -205,11 +193,11 @@ const FENWARD: MerchantDef[] = [
     role: 'night_market',
     roleLabel: 'Night dock',
     label: 'Night dock',
-    tagline: 'Echo bottles and fish bones when the fog lifts.',
+    tagline: 'Dreaming moss and iron when the fog lifts.',
     icon: '🌑',
     catalog: {
-      bottled_echo: { buy: 28, sell: 17 },
-      lucky_carp_bone: { buy: 16, sell: 10 },
+      dreaming_moss: { buy: 10, sell: 6 },
+      iron: { buy: 18, sell: 11 },
       herbs: { buy: 9, sell: 5 },
     },
   },

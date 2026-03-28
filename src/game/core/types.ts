@@ -10,6 +10,11 @@ export interface CaravanState {
   hires: Record<HireRole, number>
 }
 
+export interface WarehouseState {
+  level: 1 | 2
+  stored: Partial<Record<GoodId, number>>
+}
+
 export interface GameState {
   version: number
   gold: number
@@ -27,6 +32,8 @@ export interface GameState {
   caravan: CaravanState
   questFlags: Record<string, boolean>
   activeQuestId: string | null
+  /** Warehouses built in each town. */
+  townWarehouses: Partial<Record<TownId, WarehouseState>>
 }
 
 export type GameResult =

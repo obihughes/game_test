@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TOWNS } from '@/game/world/index.ts'
+import { TOWNS, getSeasonLabel } from '@/game/world/index.ts'
 import { useGameStore } from '@/store/gameStore.ts'
 import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { QuestPanel } from '@/ui/QuestPanel.tsx'
@@ -48,6 +48,7 @@ export function App() {
             <span>
               Day {game.day} · {townName}
             </span>
+            <span className="season-badge">{getSeasonLabel(game.day)}</span>
           </p>
         </div>
         <button type="button" className="ghost" onClick={() => reset()}>

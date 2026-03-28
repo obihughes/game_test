@@ -1,4 +1,5 @@
 import type { GoodId } from '../core/types.ts'
+import { getSeasonPriceMultiplier } from '../world/seasons.ts'
 
 /** Buy/sell crowns per unit at a merchant who lists this good. */
 export interface PriceRow {
@@ -22,7 +23,8 @@ function hashSeed(...parts: (string | number)[]): number {
 }
 
 /**
- * Deterministic daily variance (~±15% of base). Same inputs always yield same price.
+ * Deterministic daily variance (~±15% of base) plus season modifier.
+ * Same inputs always yield same price.
  */
 export function getEffectivePrice(
   basePrice: number,
@@ -34,6 +36,7 @@ export function getEffectivePrice(
   if (basePrice <= 0) return 0
   const seed = hashSeed(day, merchantId, goodId, which)
   const r = (seed % 10001) / 10000
-  const mult = 0.85 + r * 0.3
-  return Math.max(1, Math.round(basePrice * mult))
+  const dailyMult = 0.85 + r * 0.3
+  const seasonMult = getSeasonPriceMultiplier(goodId, day)
+  return Math.max(1, Math.round(basePrice * dailyMult * seasonMult))
 }

@@ -1,7 +1,7 @@
 import type { GameState } from './types.ts'
 import { defaultMerchantIdForTown } from '../economy/merchants.ts'
 
-export const SAVE_VERSION = 4
+export const SAVE_VERSION = 5
 
 export function createInitialState(): GameState {
   return {
@@ -21,5 +21,6 @@ export function createInitialState(): GameState {
     },
     questFlags: {},
     activeQuestId: 'intro_travel',
+    townWarehouses: {},
   }
 }

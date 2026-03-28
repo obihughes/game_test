@@ -7,12 +7,14 @@ globs: src/**/*
 
 - **Dialog / flavor text:** `src/content/dialog/dialog.ts` (keys only; logic stays in `src/game/quests`).
 - **Location stories & market backgrounds:** `src/content/locationContent.ts`; pixel town icons: `src/ui/icons/LocationPixelIcon.tsx`.
-- **Goods & merchants:** `src/game/economy/goods.ts`, `src/game/economy/merchants.ts` (per-town stalls, `effectivePriceRow`, `isLocalDeal`), `src/game/economy/prices.ts` (`getEffectivePrice` daily variance); buy/sell + cost basis + `tradeGoldSpent` / `tradeGoldEarned` in `src/game/economy/buySell.ts`.
-- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts` (`computeTravelLeg`: guard toll discount, scout −1 travel day).
+- **Goods & merchants:** `src/game/economy/goods.ts`, `src/game/economy/merchants.ts` (per-town stalls, `effectivePriceRow`, `isLocalDeal`), `src/game/economy/prices.ts` (`getEffectivePrice` — daily variance × season multiplier); buy/sell + cost basis in `buySell.ts`; **price history** (trend direction, sparkline data) in `priceHistory.ts` (deterministic, no stored state).
+- **Seasons:** `src/game/world/seasons.ts` — `getSeason` (28 days/season, computed from `day`), `getSeasonPriceMultiplier`, `getSeasonTravelPenalty` (+1 day in Winter), `getSeasonModifierLabel`.
+- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts` (`computeTravelLeg`: guard toll discount, scout −1 travel day, winter +1 day).
 - **Caravan upgrades:** `src/game/caravan/` — `cartTiers.ts`, `horses.ts`, `hires.ts`, `actions.ts` (`hire` / `dismissHire`) — capacity in `capacity.ts`.
+- **Town warehouses:** `src/game/investments/warehouse.ts` — `buildWarehouse` (200g), `upgradeWarehouse` (400g), `depositGoods`, `withdrawGoods`, `processRecipe`; `PROCESSING_RECIPES` (herbs→moss, salt-cure fish). State lives in `GameState.townWarehouses`.
 - **Quests:** `src/game/quests/definitions.ts` + `questLogic.ts`.
 - **Map look (SVG/CSS/colors):** `src/ui/map/` and `src/content/mapLayout.ts` for positions.
-- **Save game:** `src/game/persistence/` — key in `constants.ts`.
+- **Save game:** `src/game/persistence/` — key in `constants.ts`; current `SAVE_VERSION = 5`.
 - **Orchestration:** `src/store/gameStore.ts` — keep thin; business rules in `src/game/`.
 
 See `docs/GAME_MODULE_MAP.md` for the full table.

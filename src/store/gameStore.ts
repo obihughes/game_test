@@ -22,6 +22,19 @@ import {
 import { buyGood, sellGood } from '@/game/economy/buySell.ts'
 import { applyQuestProgress } from '@/game/quests/questLogic.ts'
 import { STORAGE_KEY } from '@/game/persistence/constants.ts'
+import {
+  buildWarehouse as buildWarehouseAction,
+  upgradeWarehouse as upgradeWarehouseAction,
+  depositGoods as depositGoodsAction,
+  withdrawGoods as withdrawGoodsAction,
+  processRecipe as processRecipeAction,
+} from '@/game/investments/warehouse.ts'
+
+export interface CartItem {
+  goodId: GoodId
+  qty: number
+  kind: 'buy' | 'sell'
+}
 
 export interface GameStore {
   game: GameState
@@ -30,10 +43,17 @@ export interface GameStore {
   setActiveMerchant: (merchantId: MerchantId) => void
   buy: (goodId: GoodId, qty: number) => void
   sell: (goodId: GoodId, qty: number) => void
+  /** Execute a batch of buy/sell operations in sequence; stops on first error. */
+  executeBatch: (items: CartItem[]) => void
   upgradeCart: () => void
   purchaseHorse: () => void
   hire: (role: HireRole) => void
   dismissHire: (role: HireRole) => void
+  buildWarehouse: (townId: TownId) => void
+  upgradeWarehouse: (townId: TownId) => void
+  depositGoods: (townId: TownId, goodId: GoodId, qty: number) => void
+  withdrawGoods: (townId: TownId, goodId: GoodId, qty: number) => void
+  processRecipe: (townId: TownId, recipeId: string) => void
   clearError: () => void
   reset: () => void
 }
@@ -101,6 +121,20 @@ export const useGameStore = create<GameStore>()(
           return { game: next, lastError: null }
         }),
 
+      executeBatch: (items) =>
+        set((s) => {
+          let state = s.game
+          for (const item of items) {
+            const r =
+              item.kind === 'buy'
+                ? buyGood(state, item.goodId, item.qty, state.activeMerchantId)
+                : sellGood(state, item.goodId, item.qty, state.activeMerchantId)
+            if (!r.ok) return { ...s, lastError: r.reason }
+            state = r.state
+          }
+          return { game: applyQuestProgress(state), lastError: null }
+        }),
+
       upgradeCart: () =>
         set((s) => {
           const r = upgradeCartAction(s.game)
@@ -128,11 +162,46 @@ export const useGameStore = create<GameStore>()(
           if (!r.ok) return { ...s, lastError: r.reason }
           return { game: applyQuestProgress(r.state), lastError: null }
         }),
+
+      buildWarehouse: (townId) =>
+        set((s) => {
+          const r = buildWarehouseAction(s.game, townId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
+      upgradeWarehouse: (townId) =>
+        set((s) => {
+          const r = upgradeWarehouseAction(s.game, townId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
+      depositGoods: (townId, goodId, qty) =>
+        set((s) => {
+          const r = depositGoodsAction(s.game, townId, goodId, qty)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
+      withdrawGoods: (townId, goodId, qty) =>
+        set((s) => {
+          const r = withdrawGoodsAction(s.game, townId, goodId, qty)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
+      processRecipe: (townId, recipeId) =>
+        set((s) => {
+          const r = processRecipeAction(s.game, townId, recipeId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
     }),
     {
       name: STORAGE_KEY,
       partialize: (state) => ({ game: state.game }),
-      version: 4,
+      version: 5,
       migrate: (persisted) => {
         const p = persisted as { game?: GameState }
         if (!p.game || typeof p.game.version !== 'number') {
@@ -158,6 +227,9 @@ export const useGameStore = create<GameStore>()(
         }
         if (typeof g.tradeGoldEarned !== 'number') {
           g = { ...g, tradeGoldEarned: 0, version: SAVE_VERSION }
+        }
+        if (!g.townWarehouses || typeof g.townWarehouses !== 'object') {
+          g = { ...g, townWarehouses: {}, version: SAVE_VERSION }
         }
         return { game: g, lastError: null }
       },

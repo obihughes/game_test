@@ -1,12 +1,14 @@
-import { useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { findRoute, ROUTES, TOWNS, type Town } from '@/game/world/index.ts'
 import { MAP_POSITIONS } from '@/content/mapLayout.ts'
 import { MapLocationGlyph } from '@/ui/icons/LocationPixelIcon.tsx'
 import { mapTheme } from '@/ui/map/mapTheme.ts'
 import { getLocationStory } from '@/content/locationContent.ts'
 import { computeTravelLeg } from '@/game/world/travel.ts'
+import { getSeasonTravelPenalty, getSeason } from '@/game/world/seasons.ts'
 import { bestSellPriceAtTown } from '@/game/economy/merchants.ts'
 import { GOOD_IDS, GOODS } from '@/game/economy/index.ts'
+import { dailyHireCost } from '@/game/caravan/actions.ts'
 import { useGameStore } from '@/store/gameStore.ts'
 import styles from '@/ui/map/map.module.css'
 
@@ -16,6 +18,14 @@ export function MapTravelScreen() {
   const lastError = useGameStore((s) => s.lastError)
   const clearError = useGameStore((s) => s.clearError)
   const [hoveredTown, setHoveredTown] = useState<string | null>(null)
+  const [pendingTravelTown, setPendingTravelTown] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!pendingTravelTown) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setPendingTravelTown(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [pendingTravelTown])
 
   const edges = useMemo(() => {
     const seen = new Set<string>()
@@ -70,6 +80,31 @@ export function MapTravelScreen() {
     return { name, days, toll, story, cargoHints: hintParts.slice(0, 2).map((h) => h.line), townId: hoveredTown }
   }, [hoveredTown, game])
 
+  const pendingInfo = useMemo(() => {
+    if (!pendingTravelTown) return null
+    const route = findRoute(game.location, pendingTravelTown)
+    if (!route) return null
+    const { days, toll } = computeTravelLeg(game, route)
+    const upkeep = dailyHireCost(game) * days
+    const totalCost = toll + upkeep
+    const goldAfter = game.gold - totalCost
+    const name = TOWNS[pendingTravelTown]?.name ?? pendingTravelTown
+    const isWinter = getSeason(game.day) === 'winter'
+    const seasonPenalty = getSeasonTravelPenalty(game.day)
+    return { name, days, toll, upkeep, totalCost, goldAfter, isWinter, seasonPenalty, townId: pendingTravelTown }
+  }, [pendingTravelTown, game])
+
+  function handleTravelRequest(townId: string) {
+    setPendingTravelTown(townId)
+  }
+
+  function confirmTravel() {
+    if (!pendingTravelTown) return
+    const town = pendingTravelTown
+    setPendingTravelTown(null)
+    travelTo(town)
+  }
+
   return (
     <section className="panel">
       <header className="panel-header">
@@ -105,11 +140,9 @@ export function MapTravelScreen() {
             </pattern>
           </defs>
 
-          {/* Background */}
           <rect width="100" height="100" fill="url(#mapBg)" />
           <rect width="100" height="100" fill="url(#mapDots)" />
 
-          {/* Roads */}
           {edges.map((e) => {
             const a = MAP_POSITIONS[e.from as keyof typeof MAP_POSITIONS]
             const b = MAP_POSITIONS[e.to as keyof typeof MAP_POSITIONS]
@@ -132,7 +165,6 @@ export function MapTravelScreen() {
             )
           })}
 
-          {/* Route day labels at midpoints */}
           {routeMidpoints.map((m) => {
             const isActive = m.from === game.location || m.to === game.location
             return (
@@ -148,7 +180,6 @@ export function MapTravelScreen() {
             )
           })}
 
-          {/* Towns */}
           {(Object.values(TOWNS) as Town[]).map((t) => {
             const pos = MAP_POSITIONS[t.id]
             if (!pos) return null
@@ -167,7 +198,7 @@ export function MapTravelScreen() {
                   fill="rgba(0,0,0,0.02)"
                   opacity={dim ? 0.35 : 1}
                   style={{ cursor: canGo && !here ? 'pointer' : 'default', transition: 'opacity 0.2s' }}
-                  onClick={() => { if (canGo && !here) travelTo(t.id) }}
+                  onClick={() => { if (canGo && !here) handleTravelRequest(t.id) }}
                   onMouseEnter={() => { if (canGo && !here) setHoveredTown(t.id) }}
                   onMouseLeave={() => setHoveredTown(null)}
                 />
@@ -195,7 +226,6 @@ export function MapTravelScreen() {
         </svg>
       </div>
 
-      {/* Hover info panel — below map, never overlaps it */}
       <div className={styles.infoPanel}>
         {hoveredInfo ? (
           <>
@@ -217,7 +247,7 @@ export function MapTravelScreen() {
                 </ul>
               </div>
             ) : null}
-            <button type="button" className={styles.travelBtn} onClick={() => travelTo(hoveredInfo.townId)}>
+            <button type="button" className={styles.travelBtn} onClick={() => handleTravelRequest(hoveredInfo.townId)}>
               Travel to {hoveredInfo.name} →
             </button>
           </>
@@ -226,7 +256,6 @@ export function MapTravelScreen() {
         )}
       </div>
 
-      {/* Destinations quick-travel list */}
       {reachableTowns.length > 0 ? (
         <div className={styles.destinationList}>
           <h3 className={styles.destinationListTitle}>Reachable destinations</h3>
@@ -241,13 +270,83 @@ export function MapTravelScreen() {
                   <span className={styles.destinationMeta}>
                     {days} day{days === 1 ? '' : 's'}{toll > 0 ? ` · ${toll}g toll` : ''}
                   </span>
-                  <button type="button" className={styles.destinationBtn} onClick={() => travelTo(t.id)}>
+                  <button type="button" className={styles.destinationBtn} onClick={() => handleTravelRequest(t.id)}>
                     Travel
                   </button>
                 </li>
               )
             })}
           </ul>
+        </div>
+      ) : null}
+
+      {pendingInfo ? (
+        <div
+          className="trade-confirm-backdrop"
+          role="presentation"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setPendingTravelTown(null) }}
+        >
+          <div
+            className="trade-confirm-dialog travel-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Travel to ${pendingInfo.name}`}
+          >
+            <h3 className="trade-confirm-dialog__title">
+              Travel to {pendingInfo.name}?
+            </h3>
+
+            {pendingInfo.isWinter && (
+              <p className="travel-confirm-dialog__season-warning">
+                ❄️ Winter roads — journey takes +{pendingInfo.seasonPenalty} extra day{pendingInfo.seasonPenalty > 1 ? 's' : ''}
+              </p>
+            )}
+
+            <div className="travel-confirm-dialog__breakdown">
+              <div className="travel-confirm-row">
+                <span>Journey time</span>
+                <strong>{pendingInfo.days} day{pendingInfo.days === 1 ? '' : 's'}</strong>
+              </div>
+              {pendingInfo.toll > 0 && (
+                <div className="travel-confirm-row">
+                  <span>Road toll</span>
+                  <strong className="cost">−{pendingInfo.toll}g</strong>
+                </div>
+              )}
+              {pendingInfo.upkeep > 0 && (
+                <div className="travel-confirm-row">
+                  <span>Hire upkeep ({pendingInfo.days}d)</span>
+                  <strong className="cost">−{pendingInfo.upkeep}g</strong>
+                </div>
+              )}
+              <div className="travel-confirm-row travel-confirm-row--total">
+                <span>Total cost</span>
+                <strong className="cost">−{pendingInfo.totalCost}g</strong>
+              </div>
+              <div className="travel-confirm-row travel-confirm-row--after">
+                <span>Gold after</span>
+                <strong className={pendingInfo.goldAfter < 0 ? 'cost' : 'gain'}>
+                  {pendingInfo.goldAfter}g
+                </strong>
+              </div>
+            </div>
+
+            <div className="trade-confirm-dialog__actions">
+              <button type="button" className="ghost" onClick={() => setPendingTravelTown(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={pendingInfo.goldAfter < 0}
+                onClick={confirmTravel}
+              >
+                Depart →
+              </button>
+            </div>
+            {pendingInfo.goldAfter < 0 && (
+              <p className="travel-confirm-dialog__cant-afford">Not enough gold for this journey.</p>
+            )}
+          </div>
         </div>
       ) : null}
     </section>

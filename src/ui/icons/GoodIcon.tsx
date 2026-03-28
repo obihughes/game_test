@@ -92,47 +92,6 @@ const ICON_SVG_DATA: Record<GoodId, string> = {
       <circle cx="11" cy="13" r="1" fill="#6a8a6a"/>
     </svg>
   `,
-  bottled_echo: `
-    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <rect x="4" y="2" width="8" height="10" rx="1" fill="#c4a0f0" stroke="#8b5ab5" stroke-width="1"/>
-      <rect x="5" y="3" width="6" height="7" fill="#e8d5ff" opacity="0.6"/>
-      <path d="M 6 11 L 6 13 L 10 13 L 10 11 Z" fill="#8b5ab5"/>
-      <circle cx="8" cy="5" r="0.8" fill="#d4a0ff" opacity="0.8"/>
-      <circle cx="6" cy="7" r="0.6" fill="#d4a0ff" opacity="0.6"/>
-      <circle cx="10" cy="6" r="0.7" fill="#d4a0ff" opacity="0.7"/>
-    </svg>
-  `,
-  chain_gang_tools: `
-    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <rect x="2" y="4" width="3" height="8" fill="#5a5a5a" stroke="#3a3a3a" stroke-width="1"/>
-      <rect x="11" y="4" width="3" height="8" fill="#5a5a5a" stroke="#3a3a3a" stroke-width="1"/>
-      <path d="M 5 6 Q 8 6 11 6" stroke="#8b7355" stroke-width="1.5" fill="none"/>
-      <path d="M 5 10 Q 8 10 11 10" stroke="#8b7355" stroke-width="1.5" fill="none"/>
-      <circle cx="5" cy="6" r="0.5" fill="#8b7355"/>
-      <circle cx="11" cy="6" r="0.5" fill="#8b7355"/>
-      <circle cx="5" cy="10" r="0.5" fill="#8b7355"/>
-      <circle cx="11" cy="10" r="0.5" fill="#8b7355"/>
-    </svg>
-  `,
-  indenture_scroll: `
-    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="2" width="10" height="12" fill="#d8c8b0" stroke="#8b7355" stroke-width="1" rx="1"/>
-      <line x1="5" y1="5" x2="11" y2="5" stroke="#5a4a3a" stroke-width="0.5" opacity="0.5"/>
-      <line x1="5" y1="7" x2="11" y2="7" stroke="#5a4a3a" stroke-width="0.5" opacity="0.5"/>
-      <line x1="5" y1="9" x2="11" y2="9" stroke="#5a4a3a" stroke-width="0.5" opacity="0.5"/>
-      <circle cx="10" cy="11" r="0.8" fill="#8b3a3a" opacity="0.7"/>
-    </svg>
-  `,
-  lucky_carp_bone: `
-    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 3 8 L 8 4 L 13 8 L 8 12 Z" fill="#e8d8c0" stroke="#8b7355" stroke-width="1"/>
-      <circle cx="8" cy="8" r="1" fill="#8b7355"/>
-      <line x1="5" y1="6" x2="4" y2="3" stroke="#8b7355" stroke-width="0.8"/>
-      <line x1="11" y1="6" x2="12" y2="3" stroke="#8b7355" stroke-width="0.8"/>
-      <line x1="5" y1="10" x2="4" y2="13" stroke="#8b7355" stroke-width="0.8"/>
-      <line x1="11" y1="10" x2="12" y2="13" stroke="#8b7355" stroke-width="0.8"/>
-    </svg>
-  `,
   crown_amber: `
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
       <ellipse cx="8" cy="9" rx="5" ry="4" fill="#d4a020" stroke="#8b6914" stroke-width="1"/>

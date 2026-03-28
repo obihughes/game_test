@@ -313,14 +313,49 @@ button:active:not(:disabled) {
 
 .market-screen__stats {
   display: flex;
-  gap: 1.5rem;
-  font-size: 0.95rem;
+  gap: 0.6rem;
+  font-size: 0.9rem;
   color: #d8ccb8;
+  flex-wrap: wrap;
 }
 
-.market-screen__stats span strong {
+.stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 20px;
+  border: 1px solid #4a3a28;
+  background: #1e1810;
+  font-size: 0.88rem;
+}
+
+.stat-pill__label {
+  color: #8a7a60;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-pill__sep {
+  color: #5a4a38;
+}
+
+.stat-pill--gold {
+  border-color: #5a4a20;
+  background: #1e1808;
+}
+
+.stat-pill--gold strong {
+  color: #c9a620;
+}
+
+.stat-pill--weight strong {
   color: #c9a66b;
-  font-weight: 600;
+}
+
+.stat-pill--spare strong {
+  color: #7cba6a;
 }
 
 .market-screen__error {
@@ -822,4 +857,672 @@ button.trade-row__btn.small {
 .hire-row__upkeep {
   flex: 1;
   min-width: 0;
+}
+
+/* ── Season badge ─────────────────────────────────────────────────────────── */
+.season-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+  border: 1px solid #5c4a3666;
+  background: rgba(20, 16, 12, 0.6);
+  color: #c9a66b;
+  white-space: nowrap;
+}
+
+/* ── Market tabs (Market / Warehouse) ─────────────────────────────────────── */
+.market-tabs {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #3a3026;
+  padding-bottom: 0.75rem;
+}
+
+.market-tab {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.9rem;
+  background: #1a1510;
+  border-color: #3a3026;
+  color: #b8a892;
+}
+
+.market-tab--active {
+  border-color: #c9a66b;
+  background: #2a2218;
+  color: #e8dcc8;
+  box-shadow: 0 0 0 1px #c9a66b33 inset;
+}
+
+/* ── Merchant cards ───────────────────────────────────────────────────────── */
+.merchant-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.merchant-card {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #3a3026;
+  background: #1a1510;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.merchant-card:hover {
+  border-color: #5c4a36;
+  background: #221e16;
+}
+
+.merchant-card--active {
+  border-color: #c9a66b;
+  background: #2a2218;
+  box-shadow: 0 0 0 1px #c9a66b22 inset;
+}
+
+.merchant-card__icon {
+  font-size: 1.2rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.merchant-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.merchant-card__role {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #c9a66b;
+}
+
+.merchant-card__name {
+  font-size: 0.85rem;
+  color: #d8ccb8;
+}
+
+.merchant-tagline {
+  margin: 0 0 1rem;
+  font-style: italic;
+}
+
+/* ── Price trend arrows ───────────────────────────────────────────────────── */
+.trade-row__trend {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: help;
+  line-height: 1;
+}
+
+.trade-row__trend--up {
+  color: #c97a6a;
+}
+
+.trade-row__trend--down {
+  color: #7cba6a;
+}
+
+.trade-row__trend--flat {
+  color: #8b7c6b;
+}
+
+/* ── Season modifier badge on trade rows ──────────────────────────────────── */
+.trade-row__season-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.32rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.trade-row__season-badge--up {
+  color: #e8a070;
+  background: rgba(120, 60, 20, 0.25);
+  border: 1px solid #8a5a3088;
+}
+
+.trade-row__season-badge--down {
+  color: #9fd88a;
+  background: rgba(50, 100, 40, 0.25);
+  border: 1px solid #5a8a4a88;
+}
+
+/* ── Price line (badge + price inline) ────────────────────────────────────── */
+.trade-row__price-line {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  margin-bottom: 0.15rem;
+}
+
+/* ── Buy actions (Buy + Max) ──────────────────────────────────────────────── */
+.trade-row__buy-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+/* ── Sparkline ────────────────────────────────────────────────────────────── */
+.trade-sparkline {
+  display: block;
+  margin-top: 0.2rem;
+  opacity: 0.85;
+}
+
+/* ── Travel confirm dialog extras ────────────────────────────────────────── */
+.travel-confirm-dialog__season-warning {
+  margin: 0 0 0.85rem;
+  padding: 0.45rem 0.65rem;
+  background: rgba(30, 50, 80, 0.35);
+  border: 1px solid #4a6a9a66;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  color: #a8c8e8;
+}
+
+.travel-confirm-dialog__breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.1rem;
+  padding: 0.65rem 0.75rem;
+  background: rgba(10, 8, 6, 0.4);
+  border: 1px solid #2a2218;
+  border-radius: 4px;
+}
+
+.travel-confirm-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.9rem;
+  color: #c8bcac;
+}
+
+.travel-confirm-row--total {
+  border-top: 1px solid #3a3026;
+  padding-top: 0.35rem;
+  margin-top: 0.1rem;
+  font-weight: 600;
+}
+
+.travel-confirm-row--after {
+  font-size: 0.85rem;
+}
+
+.travel-confirm-row .cost {
+  color: #e8a070;
+}
+
+.travel-confirm-row .gain {
+  color: #9fd88a;
+}
+
+.travel-confirm-dialog__cant-afford {
+  margin: 0.5rem 0 0;
+  font-size: 0.85rem;
+  color: #c97a6a;
+  text-align: center;
+}
+
+/* ── Warehouse panel ──────────────────────────────────────────────────────── */
+.warehouse-panel {
+  padding: 0.25rem 0;
+}
+
+.warehouse-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px dashed #3a3026;
+  border-radius: 8px;
+  background: rgba(10, 8, 6, 0.3);
+}
+
+.warehouse-empty__text {
+  margin: 0;
+  color: #b8a892;
+  font-size: 0.95rem;
+}
+
+.warehouse-empty__cost {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-size: 0.95rem;
+}
+
+.warehouse-empty__cost strong {
+  color: #c9a66b;
+  font-size: 1.05rem;
+}
+
+.warehouse-build-btn {
+  background: #3a4a2a;
+  border-color: #5a7a4a;
+  color: #b0e070;
+  padding: 0.5rem 1.1rem;
+}
+
+.warehouse-build-btn:hover:not(:disabled) {
+  background: #4a5a3a;
+}
+
+.warehouse-header {
+  margin-bottom: 1.25rem;
+}
+
+.warehouse-header__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.warehouse-header__level {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #e8dcc8;
+}
+
+.warehouse-header__maxed {
+  font-style: italic;
+}
+
+.warehouse-upgrade-btn {
+  font-size: 0.82rem;
+  padding: 0.25rem 0.6rem;
+}
+
+.warehouse-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 700px) {
+  .warehouse-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.warehouse-col__title {
+  margin: 0 0 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #c9a66b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.warehouse-row {
+  grid-template-columns: 1fr auto;
+}
+
+.warehouse-row__controls {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.qty-control__input--sm {
+  width: 3.5rem;
+  font-size: 0.82rem;
+  padding: 0.28rem 0.4rem;
+}
+
+/* ── Processing recipes ───────────────────────────────────────────────────── */
+.warehouse-recipes {
+  border-top: 1px solid #3a3026;
+  padding-top: 1rem;
+}
+
+.recipe-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.recipe-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #2a2218;
+  border-radius: 6px;
+  background: rgba(16, 12, 8, 0.5);
+}
+
+.recipe-row:hover {
+  border-color: #3a3026;
+}
+
+.recipe-row__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.recipe-row__label {
+  font-size: 0.92rem;
+  color: #e8dcc8;
+}
+
+.recipe-row__desc {
+  font-style: italic;
+}
+
+.recipe-row__ingredients {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+  margin-top: 0.2rem;
+}
+
+.recipe-ingredient {
+  font-size: 0.78rem;
+  padding: 0.1rem 0.38rem;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.recipe-ingredient--have {
+  color: #9fd88a;
+  background: rgba(50, 100, 40, 0.2);
+  border: 1px solid #5a8a4a55;
+}
+
+.recipe-ingredient--missing {
+  color: #c97a6a;
+  background: rgba(100, 40, 40, 0.2);
+  border: 1px solid #8a4a4a55;
+}
+
+.recipe-ingredient--cost {
+  color: #e8a070;
+  background: rgba(100, 60, 20, 0.2);
+  border: 1px solid #8a6a3055;
+}
+
+.recipe-ingredient--output {
+  color: #c9a66b;
+  background: rgba(80, 60, 20, 0.2);
+  border: 1px solid #7a6a3055;
+}
+
+.recipe-row__arrow {
+  color: #8b7c6b;
+  font-size: 0.9rem;
+}
+
+.recipe-row__btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.88rem;
+  background: #3a3a2a;
+  border-color: #6a6a4a;
+  color: #d8d070;
+  white-space: nowrap;
+  align-self: center;
+}
+
+.recipe-row__btn:hover:not(:disabled) {
+  background: #4a4a3a;
+  border-color: #8a8a6a;
+}
+
+/* ── Cart panel ──────────────────────────────────────────────────────────── */
+
+.trade-row--in-cart {
+  background: #1e1c14;
+  border-color: #5a4a20;
+}
+
+.trade-row__cart-badge {
+  grid-column: 1 / -1;
+  font-size: 0.78rem;
+  color: #c9a620;
+  padding: 0.15rem 0.5rem;
+  background: #2a2210;
+  border-radius: 3px;
+  display: inline-block;
+  margin-top: 0.15rem;
+}
+
+.trade-row__cart-badge--sell {
+  color: #7cba6a;
+  background: #1a2a18;
+}
+
+.qty-control__hint {
+  font-size: 0.78rem;
+  color: #6a5a48;
+  font-style: italic;
+}
+
+.cart-panel {
+  margin-top: 1.5rem;
+  border: 1px solid #5a4a20;
+  border-radius: 6px;
+  background: #1a1808;
+  overflow: hidden;
+}
+
+.cart-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: #221e0c;
+  border-bottom: 1px solid #3a3010;
+}
+
+.cart-panel__title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #c9a620;
+}
+
+.cart-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem 0;
+}
+
+.cart-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 1rem;
+  border-bottom: 1px solid #2a2210;
+  font-size: 0.9rem;
+}
+
+.cart-row:last-child {
+  border-bottom: none;
+}
+
+.cart-row__icon {
+  flex-shrink: 0;
+}
+
+.cart-row__kind {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.1rem 0.35rem;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.cart-row__kind--buy {
+  color: #7cb8e8;
+  background: #1a2a3a;
+}
+
+.cart-row__kind--sell {
+  color: #7cba6a;
+  background: #1a2a18;
+}
+
+.cart-row__name {
+  flex: 1;
+  color: #e8dcc8;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cart-row__qty-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.cart-row__qty-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  line-height: 1;
+  border-radius: 3px;
+  background: #2a2218;
+  border: 1px solid #4a3a28;
+  color: #c9a66b;
+  cursor: pointer;
+}
+
+.cart-row__qty-btn:hover {
+  background: #3a3228;
+  border-color: #6a5a40;
+}
+
+.cart-row__qty {
+  min-width: 1.5rem;
+  text-align: center;
+  font-weight: 600;
+  color: #e8dcc8;
+}
+
+.cart-row__wt {
+  flex-shrink: 0;
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.cart-row__total {
+  flex-shrink: 0;
+  min-width: 4rem;
+  text-align: right;
+  font-weight: 600;
+}
+
+.cart-row__remove {
+  flex-shrink: 0;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.75rem;
+  color: #8a6a6a;
+  border-color: #4a2a2a;
+}
+
+.cart-row__remove:hover {
+  color: #c97a6a;
+  border-color: #7a3a3a;
+}
+
+.cart-panel__summary {
+  padding: 0.65rem 1rem;
+  border-top: 1px solid #3a3010;
+  background: #1e1c0e;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #d8ccb8;
+}
+
+.cart-summary-row--sub {
+  font-size: 0.82rem;
+  color: #8a7a60;
+}
+
+.cart-panel__actions {
+  padding: 0.65rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-end;
+}
+
+.cart-panel__warn {
+  margin: 0;
+  color: #c97a6a;
+  font-size: 0.82rem;
+}
+
+.cart-checkout-btn {
+  padding: 0.55rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: #3a3010;
+  border: 1px solid #c9a620;
+  color: #c9a620;
+  border-radius: 5px;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cart-checkout-btn:hover:not(:disabled) {
+  background: #4a4018;
+  border-color: #e8c040;
+  color: #e8c040;
+}
+
+.cart-checkout-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
