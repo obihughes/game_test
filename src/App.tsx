@@ -78,7 +78,7 @@ export function App() {
 
         <main className="main">
           {tab === 'town' ? <TownScreen /> : null}
-          {tab === 'map' ? <MapTravelScreen /> : null}
+          {tab === 'map' ? <MapTravelScreen onArriveAtTown={() => setTab('town')} /> : null}
           {tab === 'caravan' ? <CaravanScreen /> : null}
         </main>
 

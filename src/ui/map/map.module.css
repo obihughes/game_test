@@ -126,6 +126,25 @@
   line-height: 1.4;
 }
 
+.infoPanelRoute {
+  margin: 0 0 0.45rem;
+  font-size: 0.8rem;
+  color: #c9a66b;
+  line-height: 1.45;
+}
+
+.infoPanelCost {
+  margin: 0 0 0.45rem;
+  font-size: 0.82rem;
+  color: #b9ae9d;
+}
+
+.infoPanelSeason {
+  margin: 0 0 0.45rem;
+  font-size: 0.8rem;
+  color: #9fb9d9;
+}
+
 .infoPanelCargo {
   margin-top: 0.45rem;
 }

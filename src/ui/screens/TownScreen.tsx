@@ -12,11 +12,12 @@ import { isLocalDeal } from '@/game/economy/merchants.ts'
 import { getPriceTrendDirection, trendArrow, getPriceTrend } from '@/game/economy/priceHistory.ts'
 import { getSeasonModifierLabel } from '@/game/world/seasons.ts'
 import { getDialog } from '@/content/dialog/dialog.ts'
-import { getLocationStory } from '@/content/locationContent.ts'
+import { getLocationPanelBackground, getLocationStory } from '@/content/locationContent.ts'
 import { spareCapacity, cargoWeight, maxCargoWeight } from '@/game/caravan/capacity.ts'
 import { getTownDemandReason, getTownEconomyProfile, TOWNS } from '@/game/world/index.ts'
 import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { GoodIcon } from '@/ui/icons/GoodIcon.tsx'
+import { MarketBackdrop } from '@/ui/screens/MarketBackdrop.tsx'
 import { useGameStore, type CartItem } from '@/store/gameStore.ts'
 import {
   WAREHOUSE_BUILD_COST,
@@ -126,6 +127,7 @@ export function TownScreen() {
   const maxWeight = maxCargoWeight(game)
   const townName = TOWNS[game.location]?.name ?? game.location
   const story = getLocationStory(game.location)
+  const marketBackdrop = useMemo(() => getLocationPanelBackground(game.location), [game.location])
   const economyProfile = useMemo(() => getTownEconomyProfile(game.location), [game.location])
   const warehouse = game.townWarehouses[game.location]
 
@@ -357,7 +359,10 @@ export function TownScreen() {
   const canCheckout = cart.length > 0 && goldAfterCart >= 0 && weightAfterCart <= maxWeight
 
   return (
-    <section className="market-screen">
+    <section className="market-screen" data-town={game.location} style={marketBackdrop}>
+      <div className="market-screen__ambience">
+        <MarketBackdrop townId={game.location} />
+      </div>
       <div className="market-screen__header">
         <div className="market-screen__title-bar">
           <LocationPixelIcon className="pixel-icon" townId={game.location} size={36} />

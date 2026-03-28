@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { findRoute, ROUTES, TOWNS, type Town } from '@/game/world/index.ts'
 import { MAP_POSITIONS } from '@/content/mapLayout.ts'
 import { MapLocationGlyph } from '@/ui/icons/LocationPixelIcon.tsx'
 import { mapTheme } from '@/ui/map/mapTheme.ts'
 import { getLocationStory } from '@/content/locationContent.ts'
-import { computeTravelLeg } from '@/game/world/travel.ts'
+import { computeTravelPlan } from '@/game/world/travel.ts'
 import { getSeasonTravelPenalty, getSeason } from '@/game/world/seasons.ts'
 import { bestSellPriceAtTown } from '@/game/economy/merchants.ts'
 import { GOOD_IDS, GOODS } from '@/game/economy/index.ts'
@@ -13,20 +13,16 @@ import { useGameStore } from '@/store/gameStore.ts'
 import styles from '@/ui/map/map.module.css'
 import { edgeBend, roadLabelAnchor, roadPathD } from '@/ui/map/mapEdgeGeometry.ts'
 
-export function MapTravelScreen() {
+interface MapTravelScreenProps {
+  onArriveAtTown?: () => void
+}
+
+export function MapTravelScreen({ onArriveAtTown }: MapTravelScreenProps) {
   const game = useGameStore((s) => s.game)
   const travelTo = useGameStore((s) => s.travelTo)
   const lastError = useGameStore((s) => s.lastError)
   const clearError = useGameStore((s) => s.clearError)
   const [hoveredTown, setHoveredTown] = useState<string | null>(null)
-  const [pendingTravelTown, setPendingTravelTown] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (!pendingTravelTown) return
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setPendingTravelTown(null) }
-    document.addEventListener('keydown', handler)
-    return () => document.removeEventListener('keydown', handler)
-  }, [pendingTravelTown])
 
   const edges = useMemo(() => {
     const seen = new Set<string>()
@@ -41,9 +37,18 @@ export function MapTravelScreen() {
   }, [])
 
   const reachableTowns = useMemo(
-    () => (Object.values(TOWNS) as Town[]).filter((t) => t.id !== game.location && findRoute(game.location, t.id)),
-    [game.location],
+    () => (Object.values(TOWNS) as Town[]).filter((t) => t.id !== game.location && computeTravelPlan(game, t.id)),
+    [game],
   )
+
+  const travelPlans = useMemo(() => {
+    const plans = new Map<string, ReturnType<typeof computeTravelPlan>>()
+    for (const town of Object.values(TOWNS) as Town[]) {
+      if (town.id === game.location) continue
+      plans.set(town.id, computeTravelPlan(game, town.id))
+    }
+    return plans
+  }, [game])
 
   const routeMidpoints = useMemo(
     () =>
@@ -63,9 +68,8 @@ export function MapTravelScreen() {
 
   const hoveredInfo = useMemo(() => {
     if (!hoveredTown || hoveredTown === game.location) return null
-    const route = findRoute(game.location, hoveredTown)
-    if (!route) return null
-    const { days, toll } = computeTravelLeg(game, route)
+    const plan = travelPlans.get(hoveredTown)
+    if (!plan) return null
     const name = TOWNS[hoveredTown]?.name ?? hoveredTown
     const story = getLocationStory(hoveredTown)
     const hintParts: { score: number; line: string }[] = []
@@ -80,32 +84,32 @@ export function MapTravelScreen() {
       }
     }
     hintParts.sort((a, b) => b.score - a.score)
-    return { name, days, toll, story, cargoHints: hintParts.slice(0, 2).map((h) => h.line), townId: hoveredTown }
-  }, [hoveredTown, game])
-
-  const pendingInfo = useMemo(() => {
-    if (!pendingTravelTown) return null
-    const route = findRoute(game.location, pendingTravelTown)
-    if (!route) return null
-    const { days, toll } = computeTravelLeg(game, route)
-    const upkeep = dailyHireCost(game) * days
-    const totalCost = toll + upkeep
-    const goldAfter = game.gold - totalCost
-    const name = TOWNS[pendingTravelTown]?.name ?? pendingTravelTown
-    const isWinter = getSeason(game.day) === 'winter'
-    const seasonPenalty = getSeasonTravelPenalty(game.day)
-    return { name, days, toll, upkeep, totalCost, goldAfter, isWinter, seasonPenalty, townId: pendingTravelTown }
-  }, [pendingTravelTown, game])
+    const upkeep = dailyHireCost(game) * plan.days
+    const totalCost = plan.toll + upkeep
+    const pathNames = [townName(game.location), ...plan.routes.map((route) => townName(route.to))]
+    const routeKeys = new Set(plan.routes.map((route) => [route.from, route.to].sort().join('|')))
+    return {
+      name,
+      days: plan.days,
+      toll: plan.toll,
+      upkeep,
+      totalCost,
+      goldAfter: game.gold - totalCost,
+      story,
+      cargoHints: hintParts.slice(0, 2).map((h) => h.line),
+      townId: hoveredTown,
+      legs: plan.routes.length,
+      pathText: pathNames.join(' -> '),
+      routeKeys,
+      isWinter: getSeason(game.day) === 'winter',
+      seasonPenalty: getSeasonTravelPenalty(game.day),
+    }
+  }, [hoveredTown, game, travelPlans])
 
   function handleTravelRequest(townId: string) {
-    setPendingTravelTown(townId)
-  }
-
-  function confirmTravel() {
-    if (!pendingTravelTown) return
-    const town = pendingTravelTown
-    setPendingTravelTown(null)
-    travelTo(town)
+    if (townId === game.location) return
+    const didTravel = travelTo(townId)
+    if (didTravel) onArriveAtTown?.()
   }
 
   return (
@@ -145,10 +149,8 @@ export function MapTravelScreen() {
             const a = MAP_POSITIONS[e.from as keyof typeof MAP_POSITIONS]
             const b = MAP_POSITIONS[e.to as keyof typeof MAP_POSITIONS]
             if (!a || !b) return null
-            const isHoveredRoute =
-              hoveredTown &&
-              ((e.from === game.location && e.to === hoveredTown) ||
-                (e.to === game.location && e.from === hoveredTown))
+            const routeKey = [e.from, e.to].sort().join('|')
+            const isHoveredRoute = hoveredInfo?.routeKeys.has(routeKey) ?? false
             const isActiveRoute = e.from === game.location || e.to === game.location
             const bend = edgeBend(e.from, e.to)
             const d = roadPathD(a.x, a.y, b.x, b.y, bend)
@@ -181,8 +183,8 @@ export function MapTravelScreen() {
             const pos = MAP_POSITIONS[t.id]
             if (!pos) return null
             const here = t.id === game.location
-            const route = findRoute(game.location, t.id)
-            const canGo = Boolean(route)
+            const plan = travelPlans.get(t.id)
+            const canGo = Boolean(plan)
             const dim = !(canGo || here)
             const isHovered = hoveredTown === t.id
             return (
@@ -232,10 +234,21 @@ export function MapTravelScreen() {
                 <span className={styles.infoPanelName}>{hoveredInfo.name}</span>
                 <span className={styles.infoPanelMeta}>
                   {hoveredInfo.days} day{hoveredInfo.days === 1 ? '' : 's'}
+                  {hoveredInfo.legs > 1 ? ` · ${hoveredInfo.legs} legs` : ' · Direct road'}
                   {hoveredInfo.toll > 0 ? ` · ${hoveredInfo.toll}g toll` : ' · No toll'}
                 </span>
               </div>
+              <p className={styles.infoPanelRoute}>{hoveredInfo.pathText}</p>
               {hoveredInfo.story ? <p className={styles.infoPanelStory}>{hoveredInfo.story}</p> : null}
+              <p className={styles.infoPanelCost}>
+                Total trip: {hoveredInfo.totalCost}g
+                {hoveredInfo.upkeep > 0 ? ` (${hoveredInfo.toll}g toll + ${hoveredInfo.upkeep}g upkeep)` : ''}
+              </p>
+              {hoveredInfo.isWinter && hoveredInfo.seasonPenalty > 0 ? (
+                <p className={styles.infoPanelSeason}>
+                  Winter slows every leg by +{hoveredInfo.seasonPenalty} day{hoveredInfo.seasonPenalty > 1 ? 's' : ''}.
+                </p>
+              ) : null}
               {hoveredInfo.cargoHints.length > 0 ? (
                 <div className={styles.infoPanelCargo}>
                   <span className={styles.infoPanelCargoLabel}>Cargo advantage: </span>
@@ -247,11 +260,11 @@ export function MapTravelScreen() {
                 </div>
               ) : null}
               <button type="button" className={styles.travelBtn} onClick={() => handleTravelRequest(hoveredInfo.townId)}>
-                Travel to {hoveredInfo.name} →
+                Travel to {hoveredInfo.name} now →
               </button>
             </>
           ) : (
-            <p className={styles.infoPanelHint}>Hover a town on the map to see route details</p>
+            <p className={styles.infoPanelHint}>Hover a town on the map to preview the full chained route, then click once to travel.</p>
           )}
         </div>
 
@@ -260,14 +273,16 @@ export function MapTravelScreen() {
             <h3 className={styles.destinationListTitle}>Destinations</h3>
             <ul className={styles.destinationItems}>
               {reachableTowns.map((t) => {
-                const route = findRoute(game.location, t.id)
-                if (!route) return null
-                const { days, toll } = computeTravelLeg(game, route)
+                const plan = travelPlans.get(t.id)
+                if (!plan) return null
+                const upkeep = dailyHireCost(game) * plan.days
                 return (
                   <li key={t.id} className={styles.destinationItem}>
                     <span className={styles.destinationName}>{t.name}</span>
                     <span className={styles.destinationMeta}>
-                      {days}d{toll > 0 ? ` · ${toll}g` : ''}
+                      {plan.days}d
+                      {plan.routes.length > 1 ? ` · ${plan.routes.length} legs` : ''}
+                      {plan.toll + upkeep > 0 ? ` · ${plan.toll + upkeep}g` : ''}
                     </span>
                     <button type="button" className={styles.destinationBtn} onClick={() => handleTravelRequest(t.id)}>
                       Go →
@@ -279,76 +294,10 @@ export function MapTravelScreen() {
           </div>
         ) : null}
       </aside>
-
-      {pendingInfo ? (
-        <div
-          className="trade-confirm-backdrop"
-          role="presentation"
-          onMouseDown={(e) => { if (e.target === e.currentTarget) setPendingTravelTown(null) }}
-        >
-          <div
-            className="trade-confirm-dialog travel-confirm-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Travel to ${pendingInfo.name}`}
-          >
-            <h3 className="trade-confirm-dialog__title">
-              Travel to {pendingInfo.name}?
-            </h3>
-
-            {pendingInfo.isWinter && (
-              <p className="travel-confirm-dialog__season-warning">
-                ❄️ Winter roads — journey takes +{pendingInfo.seasonPenalty} extra day{pendingInfo.seasonPenalty > 1 ? 's' : ''}
-              </p>
-            )}
-
-            <div className="travel-confirm-dialog__breakdown">
-              <div className="travel-confirm-row">
-                <span>Journey time</span>
-                <strong>{pendingInfo.days} day{pendingInfo.days === 1 ? '' : 's'}</strong>
-              </div>
-              {pendingInfo.toll > 0 && (
-                <div className="travel-confirm-row">
-                  <span>Road toll</span>
-                  <strong className="cost">−{pendingInfo.toll}g</strong>
-                </div>
-              )}
-              {pendingInfo.upkeep > 0 && (
-                <div className="travel-confirm-row">
-                  <span>Hire upkeep ({pendingInfo.days}d)</span>
-                  <strong className="cost">−{pendingInfo.upkeep}g</strong>
-                </div>
-              )}
-              <div className="travel-confirm-row travel-confirm-row--total">
-                <span>Total cost</span>
-                <strong className="cost">−{pendingInfo.totalCost}g</strong>
-              </div>
-              <div className="travel-confirm-row travel-confirm-row--after">
-                <span>Gold after</span>
-                <strong className={pendingInfo.goldAfter < 0 ? 'cost' : 'gain'}>
-                  {pendingInfo.goldAfter}g
-                </strong>
-              </div>
-            </div>
-
-            <div className="trade-confirm-dialog__actions">
-              <button type="button" className="ghost" onClick={() => setPendingTravelTown(null)}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={pendingInfo.goldAfter < 0}
-                onClick={confirmTravel}
-              >
-                Depart →
-              </button>
-            </div>
-            {pendingInfo.goldAfter < 0 && (
-              <p className="travel-confirm-dialog__cant-afford">Not enough gold for this journey.</p>
-            )}
-          </div>
-        </div>
-      ) : null}
     </section>
   )
+}
+
+function townName(townId: string): string {
+  return TOWNS[townId]?.name ?? townId
 }

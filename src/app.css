@@ -285,10 +285,41 @@ button:active:not(:disabled) {
 }
 
 .market-screen {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   background: #16120e;
   border: 1px solid #3a3026;
   border-radius: 4px;
   padding: 1.5rem;
+}
+
+.market-screen > * {
+  position: relative;
+  z-index: 1;
+}
+
+.market-screen__ambience {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.94;
+}
+
+.market-screen__ambience::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(10, 8, 6, 0.08) 0%, rgba(10, 8, 6, 0.18) 42%, rgba(10, 8, 6, 0.62) 100%),
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.1), transparent 28%);
+}
+
+.market-backdrop {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .market-screen__header {

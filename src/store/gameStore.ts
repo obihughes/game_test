@@ -8,8 +8,7 @@ import {
   type HireRole,
   type TownId,
 } from '@/game/core/index.ts'
-import { applyTravel, computeTravelLeg } from '@/game/world/travel.ts'
-import { findRoute, type Route } from '@/game/world/routes.ts'
+import { applyTravelPlan, computeTravelPlan } from '@/game/world/travel.ts'
 import {
   dailyHireCost,
   upgradeCart as upgradeCartAction,
@@ -37,7 +36,7 @@ export interface CartItem {
 export interface GameStore {
   game: GameState
   lastError: string | null
-  travelTo: (destination: TownId) => void
+  travelTo: (destination: TownId) => boolean
   buy: (goodId: GoodId, qty: number) => void
   sell: (goodId: GoodId, qty: number) => void
   /** Execute a batch of buy/sell operations in sequence; stops on first error. */
@@ -55,12 +54,7 @@ export interface GameStore {
   reset: () => void
 }
 
-function applyUpkeepForTravel(
-  stateAfterTravel: GameState,
-  stateBeforeTravel: GameState,
-  route: Route,
-): GameState {
-  const { days } = computeTravelLeg(stateBeforeTravel, route)
+function applyUpkeepForTravel(stateAfterTravel: GameState, days: number): GameState {
   const rate = dailyHireCost(stateAfterTravel)
   if (rate <= 0) return stateAfterTravel
   return { ...stateAfterTravel, gold: Math.max(0, stateAfterTravel.gold - rate * days) }
@@ -74,21 +68,32 @@ export const useGameStore = create<GameStore>()(
       clearError: () => set({ lastError: null }),
       reset: () => set({ game: createInitialState(), lastError: null }),
 
-      travelTo: (destination) =>
+      travelTo: (destination) => {
+        let didTravel = false
         set((s) => {
-          const route = findRoute(s.game.location, destination)
-          if (!route) {
+          const plan = computeTravelPlan(s.game, destination)
+          if (!plan) {
             return { ...s, lastError: 'No route to that town.' }
           }
+
           const before = s.game
-          const r = applyTravel(before, destination)
+          const upkeep = dailyHireCost(before) * plan.days
+          if (before.gold < plan.toll + upkeep) {
+            return { ...s, lastError: 'Not enough gold for tolls and provisions.' }
+          }
+
+          const r = applyTravelPlan(before, plan)
           if (!r.ok) {
             return { ...s, lastError: r.reason }
           }
-          let next = applyUpkeepForTravel(r.state, before, route)
+
+          let next = applyUpkeepForTravel(r.state, plan.days)
           next = applyQuestProgress(next)
+          didTravel = true
           return { game: next, lastError: null }
-        }),
+        })
+        return didTravel
+      },
 
       buy: (goodId, qty) =>
         set((s) => {

@@ -37,3 +37,54 @@ export const ROUTES: Route[] = [
 export function findRoute(from: TownId, to: TownId): Route | undefined {
   return ROUTES.find((r) => r.from === from && r.to === to)
 }
+
+type TravelPathCost = {
+  baseDays: number
+  legs: number
+  toll: number
+}
+
+function comparePathCost(a: TravelPathCost, b: TravelPathCost): number {
+  if (a.baseDays !== b.baseDays) return a.baseDays - b.baseDays
+  if (a.legs !== b.legs) return a.legs - b.legs
+  return a.toll - b.toll
+}
+
+export function findTravelPath(from: TownId, to: TownId): Route[] | undefined {
+  if (from === to) return []
+
+  const frontier: Array<{ town: TownId; path: Route[]; cost: TravelPathCost }> = [
+    { town: from, path: [], cost: { baseDays: 0, legs: 0, toll: 0 } },
+  ]
+  const best = new Map<TownId, TravelPathCost>([[from, { baseDays: 0, legs: 0, toll: 0 }]])
+
+  while (frontier.length > 0) {
+    frontier.sort((a, b) => comparePathCost(a.cost, b.cost))
+    const current = frontier.shift()!
+
+    if (current.town === to) {
+      return current.path
+    }
+
+    for (const route of ROUTES) {
+      if (route.from !== current.town) continue
+
+      const nextCost = {
+        baseDays: current.cost.baseDays + route.baseDays,
+        legs: current.cost.legs + 1,
+        toll: current.cost.toll + route.toll,
+      }
+      const previousBest = best.get(route.to)
+      if (previousBest && comparePathCost(nextCost, previousBest) >= 0) continue
+
+      best.set(route.to, nextCost)
+      frontier.push({
+        town: route.to,
+        path: [...current.path, route],
+        cost: nextCost,
+      })
+    }
+  }
+
+  return undefined
+}
