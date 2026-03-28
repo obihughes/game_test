@@ -20,9 +20,9 @@ Read this first when editing a slice of the game. Each row is intentionally isol
 | Location lore + market panel backgrounds | `src/content/locationContent.ts` | `LOCATION_STORIES`, `getLocationPanelBackground` |
 | Pixel town icons (map + UI) | `src/ui/icons/LocationPixelIcon.tsx` | `LocationPixelIcon`, `MapLocationGlyph` |
 | Map node positions (visual only) | `src/content/mapLayout.ts` | x/y per town id |
-| Map rendering / colors | `src/ui/map/` | `MapView.tsx`, `map.module.css`, `mapTheme.ts` |
+| Map rendering / colors | `src/ui/map/` + `src/ui/screens/MapTravelScreen.tsx` | Map visual styles in `map.module.css`, `mapTheme.ts`; interactive travel in `MapTravelScreen` |
 | Global UI shell | `src/App.tsx`, `src/app.css` | Tabs, layout |
-| Screens | `src/ui/screens/` | Market, travel list, caravan upgrades |
+| Screens | `src/ui/screens/` | Market, map & travel (combined), caravan upgrades |
 | React + Zustand wiring | `src/store/gameStore.ts` | `travelTo`, `setActiveMerchant`, `buy` / `sell` (use `game.activeMerchantId`) |
 
 ## Import convention

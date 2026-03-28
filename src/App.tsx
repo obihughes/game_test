@@ -1,14 +1,13 @@
 import { useState } from 'react'
 import { TOWNS } from '@/game/world/index.ts'
 import { useGameStore } from '@/store/gameStore.ts'
-import { MapView } from '@/ui/map/MapView.tsx'
 import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { QuestPanel } from '@/ui/QuestPanel.tsx'
 import { TownScreen } from '@/ui/screens/TownScreen.tsx'
-import { TravelScreen } from '@/ui/screens/TravelScreen.tsx'
+import { MapTravelScreen } from '@/ui/screens/MapTravelScreen.tsx'
 import { CaravanScreen } from '@/ui/screens/CaravanScreen.tsx'
 
-type Tab = 'town' | 'map' | 'travel' | 'caravan'
+type Tab = 'town' | 'map' | 'caravan'
 
 export function App() {
   const game = useGameStore((s) => s.game)
@@ -45,8 +44,7 @@ export function App() {
           {(
             [
               ['town', 'Market'],
-              ['map', 'Map'],
-              ['travel', 'Travel'],
+              ['map', 'Map & Travel'],
               ['caravan', 'Caravan'],
             ] as const
           ).map(([id, label]) => (
@@ -63,16 +61,7 @@ export function App() {
 
         <main className="main">
           {tab === 'town' ? <TownScreen /> : null}
-          {tab === 'map' ? (
-            <section className="panel">
-              <header className="panel-header">
-                <h2>Realm map</h2>
-                <p className="muted">Click a connected town to travel.</p>
-              </header>
-              <MapView location={game.location} onSelectTown={(id) => travelTo(id)} />
-            </section>
-          ) : null}
-          {tab === 'travel' ? <TravelScreen /> : null}
+          {tab === 'map' ? <MapTravelScreen /> : null}
           {tab === 'caravan' ? <CaravanScreen /> : null}
         </main>
 
