@@ -34,6 +34,7 @@ export interface CartItem {
   goodId: GoodId
   qty: number
   kind: 'buy' | 'sell'
+  merchantId: MerchantId
 }
 
 export interface GameStore {
@@ -43,6 +44,8 @@ export interface GameStore {
   setActiveMerchant: (merchantId: MerchantId) => void
   buy: (goodId: GoodId, qty: number) => void
   sell: (goodId: GoodId, qty: number) => void
+  buyAtMerchant: (goodId: GoodId, qty: number, merchantId: MerchantId) => void
+  sellToMerchant: (goodId: GoodId, qty: number, merchantId: MerchantId) => void
   /** Execute a batch of buy/sell operations in sequence; stops on first error. */
   executeBatch: (items: CartItem[]) => void
   upgradeCart: () => void
@@ -121,16 +124,36 @@ export const useGameStore = create<GameStore>()(
           return { game: next, lastError: null }
         }),
 
+      buyAtMerchant: (goodId, qty, merchantId) =>
+        set((s) => {
+          const r = buyGood(s.game, goodId, qty, merchantId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          const next = applyQuestProgress({ ...r.state, activeMerchantId: merchantId })
+          return { game: next, lastError: null }
+        }),
+
+      sellToMerchant: (goodId, qty, merchantId) =>
+        set((s) => {
+          const r = sellGood(s.game, goodId, qty, merchantId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          const next = applyQuestProgress({ ...r.state, activeMerchantId: merchantId })
+          return { game: next, lastError: null }
+        }),
+
       executeBatch: (items) =>
         set((s) => {
           let state = s.game
-          for (const item of items) {
+          const orderedItems = [
+            ...items.filter((item) => item.kind === 'sell'),
+            ...items.filter((item) => item.kind === 'buy'),
+          ]
+          for (const item of orderedItems) {
             const r =
               item.kind === 'buy'
-                ? buyGood(state, item.goodId, item.qty, state.activeMerchantId)
-                : sellGood(state, item.goodId, item.qty, state.activeMerchantId)
+                ? buyGood(state, item.goodId, item.qty, item.merchantId)
+                : sellGood(state, item.goodId, item.qty, item.merchantId)
             if (!r.ok) return { ...s, lastError: r.reason }
-            state = r.state
+            state = { ...r.state, activeMerchantId: item.merchantId }
           }
           return { game: applyQuestProgress(state), lastError: null }
         }),

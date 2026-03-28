@@ -23,20 +23,21 @@ function hashSeed(...parts: (string | number)[]): number {
 }
 
 /**
- * Deterministic daily variance (~±15% of base) plus season modifier.
- * Same inputs always yield same price.
+ * Deterministic daily variance (~±8% of base) plus season modifier.
+ * Buy and sell now share the same daily movement so variance cannot
+ * create impossible routes by widening spreads in opposite directions.
  */
 export function getEffectivePrice(
   basePrice: number,
   day: number,
   merchantId: string,
   goodId: string,
-  which: 'buy' | 'sell',
+  _which: 'buy' | 'sell',
 ): number {
   if (basePrice <= 0) return 0
-  const seed = hashSeed(day, merchantId, goodId, which)
+  const seed = hashSeed(day, merchantId, goodId)
   const r = (seed % 10001) / 10000
-  const dailyMult = 0.85 + r * 0.3
+  const dailyMult = 0.92 + r * 0.16
   const seasonMult = getSeasonPriceMultiplier(goodId, day)
   return Math.max(1, Math.round(basePrice * dailyMult * seasonMult))
 }

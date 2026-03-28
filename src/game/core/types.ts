@@ -20,7 +20,7 @@ export interface GameState {
   gold: number
   day: number
   location: TownId
-  /** Which stall you are trading at; must match a merchant in `location`. */
+  /** Fallback / last-used stall for the current town; must match a merchant in `location`. */
   activeMerchantId: MerchantId
   inventory: Record<GoodId, number>
   /** Total gold paid for units still held (per good); average buy = value / inventory count. */

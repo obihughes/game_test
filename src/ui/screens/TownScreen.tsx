@@ -1,10 +1,16 @@
-import { useEffect, useId, useState } from 'react'
-import { averageInventoryBuyPrice, GOODS, GOOD_IDS } from '@/game/economy/index.ts'
+import { useEffect, useId, useMemo, useState } from 'react'
+import {
+  averageInventoryBuyPrice,
+  GOODS,
+  GOOD_IDS,
+  townDemandGoods,
+  townPrimaryGoods,
+} from '@/game/economy/index.ts'
 import {
   effectivePriceRow,
   isLocalDeal,
-  merchantDef,
   merchantsForTown,
+  type MerchantDef,
 } from '@/game/economy/merchants.ts'
 import { getPriceTrendDirection, trendArrow, getPriceTrend } from '@/game/economy/priceHistory.ts'
 import { getSeasonModifierLabel } from '@/game/world/seasons.ts'
@@ -22,16 +28,42 @@ import {
   getWarehouseCapacity,
   getWarehouseUsed,
 } from '@/game/investments/warehouse.ts'
-import type { GoodId } from '@/game/core/types.ts'
+import type { GoodId, MerchantId } from '@/game/core/types.ts'
 
 type MarketTab = 'market' | 'warehouse'
+type TradeKind = 'buy' | 'sell'
+type TradeOffer = {
+  merchant: MerchantDef
+  row: { buy: number; sell: number }
+}
+type BuyEntry = {
+  id: GoodId
+  offer: TradeOffer
+  offers: TradeOffer[]
+  isPrimary: boolean
+  trend: 'up' | 'down' | 'flat'
+  seasonLabel: string | null
+  sparklineData: number[]
+}
+type SellEntry = {
+  id: GoodId
+  count: number
+  offer: TradeOffer | null
+  offers: TradeOffer[]
+  avgBuy: number | null
+  sellDelta: number | null
+  isWanted: boolean
+  weight: number
+  trend: 'up' | 'down' | 'flat'
+  seasonLabel: string | null
+  sparklineData: number[]
+}
 
 export function TownScreen() {
   const game = useGameStore((s) => s.game)
-  const buy = useGameStore((s) => s.buy)
-  const sell = useGameStore((s) => s.sell)
+  const buyAtMerchant = useGameStore((s) => s.buyAtMerchant)
+  const sellToMerchant = useGameStore((s) => s.sellToMerchant)
   const executeBatch = useGameStore((s) => s.executeBatch)
-  const setActiveMerchant = useGameStore((s) => s.setActiveMerchant)
   const lastError = useGameStore((s) => s.lastError)
   const clearError = useGameStore((s) => s.clearError)
   const buildWarehouse = useGameStore((s) => s.buildWarehouse)
@@ -40,9 +72,11 @@ export function TownScreen() {
   const withdrawGoods = useGameStore((s) => s.withdrawGoods)
   const processRecipe = useGameStore((s) => s.processRecipe)
 
-  const [qty, setQty] = useState(1)
   const [marketTab, setMarketTab] = useState<MarketTab>('market')
   const [showLore, setShowLore] = useState(false)
+  const [showCartDetails, setShowCartDetails] = useState(true)
+  const [tradeQty, setTradeQty] = useState<Record<string, number>>({})
+  const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({})
   const [whQty, setWhQty] = useState<Record<string, number>>({})
   const confirmTitleId = useId()
   const confirmBodyId = useId()
@@ -54,29 +88,27 @@ export function TownScreen() {
         kind: 'buy' | 'sell'
         goodId: GoodId
         qty: number
+        merchantId: MerchantId
+        merchantLabel: string
         unitGold: number
         totalGold: number
       }
   >(null)
 
-  // Cart: staged items before checkout
   const [cart, setCart] = useState<CartItem[]>([])
   const [hoveredSparkline, setHoveredSparkline] = useState<string | null>(null)
 
   const merchants = merchantsForTown(game.location)
-  const active = merchantDef(game.location, game.activeMerchantId) ?? merchants[0]
+  const primaryGoodIds = useMemo(() => townPrimaryGoods(game.location, 5), [game.location])
+  const wantedGoodIds = useMemo(() => townDemandGoods(game.location, 5), [game.location])
+  const primaryGoods = useMemo(() => new Set(primaryGoodIds), [primaryGoodIds])
+  const wantedGoods = useMemo(() => new Set(wantedGoodIds), [wantedGoodIds])
 
-  useEffect(() => {
-    const list = merchantsForTown(game.location)
-    if (!list.length) return
-    if (!merchantDef(game.location, game.activeMerchantId)) {
-      setActiveMerchant(list[0]!.id)
-    }
-  }, [game.location, game.activeMerchantId, setActiveMerchant])
-
-  // Clear cart when switching towns
   useEffect(() => {
     setCart([])
+    setTradeQty({})
+    setExpandedRows({})
+    setShowCartDetails(true)
   }, [game.location])
 
   useEffect(() => {
@@ -93,24 +125,82 @@ export function TownScreen() {
   const story = getLocationStory(game.location)
   const warehouse = game.townWarehouses[game.location]
 
-  const catalogEntries = active
-    ? (Object.keys(active.catalog) as GoodId[])
-        .sort((a, b) => GOOD_IDS.indexOf(a) - GOOD_IDS.indexOf(b))
-        .map((id) => {
-          const row = effectivePriceRow(game.location, active.id, id, game.day)
-          return row ? { id, row } : null
-        })
-        .filter(Boolean) as { id: GoodId; row: { buy: number; sell: number } }[]
-    : []
+  const cargoGoods = useMemo(
+    () => GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0),
+    [game.inventory],
+  )
 
-  const cargoGoods: GoodId[] = GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0)
+  const buyEntries = useMemo<BuyEntry[]>(
+    () =>
+      GOOD_IDS.map((id) => {
+        const offers = merchants
+          .map((merchant) => {
+            const row = effectivePriceRow(game.location, merchant.id, id, game.day)
+            return row ? { merchant, row } : null
+          })
+          .filter((offer): offer is TradeOffer => offer !== null)
+          .sort((a, b) => a.row.buy - b.row.buy)
+        if (!offers.length) return null
+        const offer = offers[0]!
+        return {
+          id,
+          offer,
+          offers,
+          isPrimary: primaryGoods.has(id),
+          trend: getPriceTrendDirection(game.location, offer.merchant.id, id, game.day),
+          seasonLabel: getSeasonModifierLabel(id, game.day),
+          sparklineData: getPriceTrend(game.location, offer.merchant.id, id, game.day, 7).map((p) => p.buy),
+        }
+      })
+        .filter((entry): entry is BuyEntry => entry !== null)
+        .sort(
+          (a, b) =>
+            Number(b.isPrimary) - Number(a.isPrimary) ||
+            a.offer.row.buy - b.offer.row.buy ||
+            GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
+        ),
+    [game.location, game.day, merchants, primaryGoods],
+  )
 
-  function maxBuyQty(goodId: GoodId, buyPrice: number): number {
-    const g = GOODS[goodId]!
-    const byGold = buyPrice > 0 ? Math.floor(game.gold / buyPrice) : 999
-    const byWeight = g.weightPerUnit > 0 ? Math.floor(spare / g.weightPerUnit) : 999
-    return Math.max(0, Math.min(byGold, byWeight))
-  }
+  const sellEntries = useMemo<SellEntry[]>(
+    () =>
+      cargoGoods.map((id) => {
+        const offers = merchants
+          .map((merchant) => {
+            const row = effectivePriceRow(game.location, merchant.id, id, game.day)
+            return row ? { merchant, row } : null
+          })
+          .filter((offer): offer is TradeOffer => offer !== null)
+          .sort((a, b) => b.row.sell - a.row.sell)
+        const offer = offers[0] ?? null
+        const count = game.inventory[id] ?? 0
+        const weight = GOODS[id]!.weightPerUnit * count
+        const avgBuy = averageInventoryBuyPrice(game, id)
+        const sellDelta =
+          offer && avgBuy !== null ? Math.round((offer.row.sell - avgBuy) * 10) / 10 : null
+        return {
+          id,
+          count,
+          offer,
+          offers,
+          avgBuy,
+          sellDelta,
+          isWanted: wantedGoods.has(id),
+          weight,
+          trend: offer ? getPriceTrendDirection(game.location, offer.merchant.id, id, game.day) : 'flat',
+          seasonLabel: getSeasonModifierLabel(id, game.day),
+          sparklineData: offer
+            ? getPriceTrend(game.location, offer.merchant.id, id, game.day, 7).map((p) => p.sell)
+            : [],
+        }
+      }).sort(
+        (a, b) =>
+          Number(b.isWanted) - Number(a.isWanted) ||
+          (b.offer?.row.sell ?? 0) - (a.offer?.row.sell ?? 0) ||
+          GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
+      ),
+    [cargoGoods, game, merchants, wantedGoods],
+  )
 
   function getWhQty(key: string, max: number): number {
     return Math.min(Math.max(1, whQty[key] ?? 1), max)
@@ -120,12 +210,11 @@ export function TownScreen() {
     setWhQty((prev) => ({ ...prev, [key]: val }))
   }
 
-  // Cart helpers
   function cartBuyTotal(): number {
     return cart
       .filter((i) => i.kind === 'buy')
       .reduce((sum, i) => {
-        const row = active ? effectivePriceRow(game.location, active.id, i.goodId, game.day) : undefined
+        const row = effectivePriceRow(game.location, i.merchantId, i.goodId, game.day)
         return sum + (row ? row.buy * i.qty : 0)
       }, 0)
   }
@@ -134,7 +223,7 @@ export function TownScreen() {
     return cart
       .filter((i) => i.kind === 'sell')
       .reduce((sum, i) => {
-        const row = active ? effectivePriceRow(game.location, active.id, i.goodId, game.day) : undefined
+        const row = effectivePriceRow(game.location, i.merchantId, i.goodId, game.day)
         return sum + (row ? row.sell * i.qty : 0)
       }, 0)
   }
@@ -148,55 +237,136 @@ export function TownScreen() {
     }, 0)
   }
 
-  function addToCart(kind: 'buy' | 'sell', goodId: GoodId, itemQty: number) {
+  function rowKey(kind: TradeKind, goodId: GoodId): string {
+    return `${kind}:${goodId}`
+  }
+
+  function toggleRowExpanded(key: string) {
+    setExpandedRows((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  function getTradeQty(key: string, max: number, fallback = 1): number {
+    const safeMax = Math.max(1, max)
+    return Math.min(Math.max(1, tradeQty[key] ?? fallback), safeMax)
+  }
+
+  function setTradeQtyFor(key: string, val: number, max: number) {
+    const safeMax = Math.max(1, max)
+    setTradeQty((prev) => ({ ...prev, [key]: Math.max(1, Math.min(safeMax, val || 1)) }))
+  }
+
+  function setCartItem(item: CartItem) {
     setCart((prev) => {
-      const existing = prev.findIndex((c) => c.goodId === goodId && c.kind === kind)
+      const existing = prev.findIndex(
+        (c) =>
+          c.goodId === item.goodId && c.kind === item.kind && c.merchantId === item.merchantId,
+      )
       if (existing >= 0) {
         const updated = [...prev]
-        updated[existing] = { ...updated[existing]!, qty: updated[existing]!.qty + itemQty }
+        updated[existing] = item
         return updated
       }
-      return [...prev, { goodId, qty: itemQty, kind }]
+      return [...prev, item]
     })
+    setShowCartDetails(true)
   }
 
-  function removeFromCart(goodId: GoodId, kind: 'buy' | 'sell') {
-    setCart((prev) => prev.filter((c) => !(c.goodId === goodId && c.kind === kind)))
-  }
-
-  function updateCartQty(goodId: GoodId, kind: 'buy' | 'sell', newQty: number) {
-    if (newQty <= 0) {
-      removeFromCart(goodId, kind)
-      return
-    }
+  function removeFromCart(goodId: GoodId, kind: TradeKind, merchantId: MerchantId) {
     setCart((prev) =>
-      prev.map((c) => (c.goodId === goodId && c.kind === kind ? { ...c, qty: newQty } : c)),
+      prev.filter((c) => !(c.goodId === goodId && c.kind === kind && c.merchantId === merchantId)),
     )
   }
 
-  function handleBuyClick(goodId: GoodId, buyPrice: number) {
-    if (qty === 1) {
-      // Direct execute, no confirm
-      buy(goodId, 1)
-    } else {
-      setPendingTrade({ kind: 'buy', goodId, qty, unitGold: buyPrice, totalGold: buyPrice * qty })
-    }
+  function cartContextExcluding(target: {
+    goodId: GoodId
+    kind: TradeKind
+    merchantId: MerchantId
+  }): { buy: number; sell: number; weight: number } {
+    return cart.reduce(
+      (acc, item) => {
+        if (
+          item.goodId === target.goodId &&
+          item.kind === target.kind &&
+          item.merchantId === target.merchantId
+        ) {
+          return acc
+        }
+        const row = effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
+        if (!row) return acc
+        const unitPrice = item.kind === 'buy' ? row.buy : row.sell
+        const weight = (GOODS[item.goodId]?.weightPerUnit ?? 0) * item.qty
+        if (item.kind === 'buy') acc.buy += unitPrice * item.qty
+        else acc.sell += unitPrice * item.qty
+        acc.weight += item.kind === 'buy' ? weight : -weight
+        return acc
+      },
+      { buy: 0, sell: 0, weight: 0 },
+    )
   }
 
-  function handleSellClick(goodId: GoodId, sellPrice: number, sellQty: number) {
-    if (sellQty === 1) {
-      sell(goodId, 1)
-    } else {
-      setPendingTrade({ kind: 'sell', goodId, qty: sellQty, unitGold: sellPrice, totalGold: sellPrice * sellQty })
-    }
+  function maxBuyQtyForOffer(goodId: GoodId, merchantId: MerchantId, unitPrice: number): number {
+    const good = GOODS[goodId]
+    if (!good) return 0
+    const otherCart = cartContextExcluding({ goodId, kind: 'buy', merchantId })
+    const goldAvailable = game.gold - otherCart.buy + otherCart.sell
+    const weightAvailable = maxWeight - (currentWeight + otherCart.weight)
+    const byGold = unitPrice > 0 ? Math.floor(Math.max(0, goldAvailable) / unitPrice) : 999
+    const byWeight =
+      good.weightPerUnit > 0
+        ? Math.floor(Math.max(0, weightAvailable) / good.weightPerUnit)
+        : 999
+    return Math.max(0, Math.min(byGold, byWeight))
   }
 
-  function handleSellAllClick(goodId: GoodId, sellPrice: number, count: number) {
-    if (count === 1) {
-      sell(goodId, 1)
-    } else {
-      setPendingTrade({ kind: 'sell', goodId, qty: count, unitGold: sellPrice, totalGold: sellPrice * count })
+  function updateCartQty(
+    goodId: GoodId,
+    kind: TradeKind,
+    merchantId: MerchantId,
+    newQty: number,
+  ) {
+    if (newQty <= 0) {
+      removeFromCart(goodId, kind, merchantId)
+      return
     }
+    const row = effectivePriceRow(game.location, merchantId, goodId, game.day)
+    let clampedQty = newQty
+    if (kind === 'buy' && row) {
+      clampedQty = Math.min(newQty, maxBuyQtyForOffer(goodId, merchantId, row.buy))
+    }
+    if (kind === 'sell') {
+      clampedQty = Math.min(newQty, game.inventory[goodId] ?? 0)
+    }
+    setCart((prev) =>
+      prev.map((c) =>
+        c.goodId === goodId && c.kind === kind && c.merchantId === merchantId
+          ? { ...c, qty: clampedQty }
+          : c,
+      ),
+    )
+  }
+
+  function requestTrade(
+    kind: TradeKind,
+    goodId: GoodId,
+    qty: number,
+    merchantId: MerchantId,
+    merchantLabel: string,
+    unitGold: number,
+  ) {
+    if (qty <= 1) {
+      if (kind === 'buy') buyAtMerchant(goodId, 1, merchantId)
+      else sellToMerchant(goodId, 1, merchantId)
+      return
+    }
+    setPendingTrade({
+      kind,
+      goodId,
+      qty,
+      merchantId,
+      merchantLabel,
+      unitGold,
+      totalGold: unitGold * qty,
+    })
   }
 
   const cartBuy = cartBuyTotal()
@@ -204,6 +374,7 @@ export function TownScreen() {
   const cartWt = cartWeightDelta()
   const goldAfterCart = game.gold - cartBuy + cartSell
   const weightAfterCart = currentWeight + cartWt
+  const spareAfterCart = maxWeight - weightAfterCart
   const canCheckout = cart.length > 0 && goldAfterCart >= 0 && weightAfterCart <= maxWeight
 
   return (
@@ -228,6 +399,10 @@ export function TownScreen() {
             </div>
           </div>
           <div className="market-screen__stats">
+            <span className="stat-pill stat-pill--gold">
+              <span className="stat-pill__label">Gold</span>
+              <strong>{game.gold}</strong>
+            </span>
             <span className="stat-pill stat-pill--weight">
               <span className="stat-pill__label">Cargo</span>
               <strong>{currentWeight}</strong>
@@ -274,93 +449,68 @@ export function TownScreen() {
       </div>
 
       {marketTab === 'market' ? (
-        <>
-          {/* Merchant card selector */}
-          <div className="merchant-cards">
-            {merchants.map((m) => (
-              <button
-                key={m.id}
-                type="button"
-                className={
-                  active?.id === m.id
-                    ? 'merchant-card merchant-card--active'
-                    : 'merchant-card'
-                }
-                onClick={() => setActiveMerchant(m.id)}
-              >
-                <span className="merchant-card__icon">{m.icon}</span>
-                <span className="merchant-card__info">
-                  <span className="merchant-card__role">{m.roleLabel}</span>
-                  <span className="merchant-card__name">{m.label}</span>
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {active ? (
-            <p className="merchant-tagline muted small">{active.tagline}</p>
-          ) : null}
-
-          {/* Quantity control */}
-          <div className="market-screen__qty-control">
-            <label className="qty-control__label">Qty:</label>
-            <input
-              type="number"
-              className="qty-control__input"
-              min={1}
-              value={qty}
-              onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
-            />
-            <div className="qty-presets" aria-label="Quick quantity presets">
-              {([1, 5, 10, 25] as const).map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className={qty === n ? 'qty-preset qty-preset--active' : 'qty-preset'}
-                  onClick={() => setQty(n)}
-                >
-                  {n}
-                </button>
-              ))}
-            </div>
-            <span className="qty-control__hint muted small">
-              {qty === 1 ? 'Single buys/sells are instant' : 'Or add to cart for multi-item checkout'}
-            </span>
-          </div>
-
-          <div className="market-screen__content">
-            {/* Available to buy */}
+        <div className="market-screen__content">
+          <div className="market-board">
             <div className="market-column market-column--catalog">
-              <h3 className="market-column__title">Available to buy</h3>
-              {catalogEntries.length === 0 ? (
+              <div className="market-column__heading">
+                <h3 className="market-column__title">Buy in town</h3>
+                <span className="muted small">
+                  {primaryGoodIds.length} local specialty{primaryGoodIds.length === 1 ? '' : 'ies'} · {buyEntries.length} goods listed
+                </span>
+              </div>
+              {buyEntries.length === 0 ? (
                 <p className="market-column__empty">Nothing in stock.</p>
               ) : (
                 <ul className="trade-list">
-                  {catalogEntries.map(({ id, row }) => {
-                    const g = GOODS[id]!
-                    const trend = active
-                      ? getPriceTrendDirection(game.location, active.id, id, game.day)
-                      : 'flat'
-                    const seasonLabel = getSeasonModifierLabel(id, game.day)
-                    const maxQty = maxBuyQty(id, row.buy)
-                    const sparklineData = active
-                      ? getPriceTrend(game.location, active.id, id, game.day, 7)
-                      : []
+                  {buyEntries.map(({ id, offer, offers, isPrimary, trend, seasonLabel, sparklineData }) => {
+                    const good = GOODS[id]!
+                    const key = rowKey('buy', id)
+                    const inCart = cart.find(
+                      (item) =>
+                        item.kind === 'buy' && item.goodId === id && item.merchantId === offer.merchant.id,
+                    )
+                    const maxQty = maxBuyQtyForOffer(id, offer.merchant.id, offer.row.buy)
+                    const qtyLimit = Math.max(maxQty, inCart?.qty ?? 1, 1)
+                    const qty = getTradeQty(key, qtyLimit, inCart?.qty ?? 1)
                     const sparklineKey = `buy-${id}`
-                    const inCart = cart.find((c) => c.goodId === id && c.kind === 'buy')
+                    const isExpanded = expandedRows[key]
                     return (
-                      <li key={id} className={`trade-row${inCart ? ' trade-row--in-cart' : ''}`}>
+                      <li
+                        key={id}
+                        className={`trade-row${isPrimary ? ' trade-row--primary' : ''}${inCart ? ' trade-row--in-cart' : ''}`}
+                      >
                         <div className="trade-row__item">
                           <GoodIcon goodId={id} size={24} className="trade-row__icon" />
                           <div className="trade-row__name">
-                            <strong>{g.name}</strong>
-                            <span className="trade-row__flavor muted small">{getDialog(g.dialogFlavorId)}</span>
-                            <span className="trade-row__flavor muted small">{g.weightPerUnit} wt/unit</span>
+                            <div className="trade-row__name-line">
+                              <strong>{good.name}</strong>
+                              <span className="trade-row__merchant-pill">
+                                {offer.merchant.roleLabel}: {offer.merchant.label}
+                              </span>
+                              {inCart ? (
+                                <span className="trade-row__cart-chip">Cart ×{inCart.qty}</span>
+                              ) : null}
+                            </div>
+                            <div className="trade-row__meta muted small">
+                              <span>{good.weightPerUnit} wt / unit</span>
+                              <button
+                                type="button"
+                                className="linkish trade-row__details-toggle"
+                                onClick={() => toggleRowExpanded(key)}
+                              >
+                                {isExpanded ? 'Hide details' : 'Details'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                         <div className="trade-row__prices">
                           <div className="trade-row__price-line">
-                            {active && isLocalDeal(game.location, active.id, id, game.day) ? (
+                            {isPrimary ? (
+                              <span className="trade-row__badge trade-row__badge--primary" title="One of this town's cheapest local goods">
+                                Local supply
+                              </span>
+                            ) : null}
+                            {isLocalDeal(game.location, offer.merchant.id, id, game.day) ? (
                               <span className="trade-row__badge" title="Below typical market buy price today">
                                 Deal
                               </span>
@@ -379,8 +529,7 @@ export function TownScreen() {
                             ) : null}
                           </div>
                           <span className="trade-row__price">
-                            Buy:{' '}
-                            <strong>{row.buy}</strong>g
+                            Buy <strong>{offer.row.buy}</strong>g
                             <span
                               className={`trade-row__trend trade-row__trend--${trend}`}
                               title={`Price trend: ${trend}`}
@@ -391,52 +540,62 @@ export function TownScreen() {
                             </span>
                           </span>
                           {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
-                            <Sparkline data={sparklineData.map((p) => p.buy)} />
+                            <Sparkline data={sparklineData} />
                           ) : null}
                         </div>
-                        <div className="trade-row__buy-actions">
+                        <QtyStepper
+                          value={qty}
+                          max={qtyLimit}
+                          disabled={maxQty <= 0}
+                          shortcutLabel="Max"
+                          shortcutDisabled={maxQty <= 0}
+                          onChange={(next) => setTradeQtyFor(key, next, qtyLimit)}
+                          onShortcut={() => setTradeQtyFor(key, maxQty, qtyLimit)}
+                        />
+                        <div className="trade-row__actions">
                           <button
                             type="button"
                             className="trade-row__btn trade-row__btn--buy"
                             disabled={maxQty <= 0}
-                            title={qty === 1 ? 'Buy 1 instantly' : `Buy ${qty} (confirm)`}
-                            onClick={() => handleBuyClick(id, row.buy)}
+                            onClick={() =>
+                              requestTrade('buy', id, qty, offer.merchant.id, offer.merchant.label, offer.row.buy)
+                            }
                           >
-                            Buy {qty === 1 ? '1' : `×${qty}`}
+                            {qty === 1 ? 'Buy now' : `Buy ×${qty}`}
                           </button>
-                          {maxQty > 1 ? (
-                            <button
-                              type="button"
-                              className="trade-row__btn trade-row__btn--buy ghost small"
-                              title={`Add ${qty} to cart`}
-                              onClick={() => addToCart('buy', id, qty)}
-                            >
-                              + Cart
-                            </button>
-                          ) : null}
-                          {maxQty > 0 ? (
-                            <button
-                              type="button"
-                              className="trade-row__btn trade-row__btn--buy ghost small"
-                              title={`Buy max (${maxQty})`}
-                              onClick={() => {
-                                setQty(maxQty)
-                                setPendingTrade({
-                                  kind: 'buy',
-                                  goodId: id,
-                                  qty: maxQty,
-                                  unitGold: row.buy,
-                                  totalGold: row.buy * maxQty,
-                                })
-                              }}
-                            >
-                              Max {maxQty}
-                            </button>
-                          ) : null}
+                          <button
+                            type="button"
+                            className="trade-row__btn ghost small"
+                            disabled={maxQty <= 0}
+                            onClick={() =>
+                              setCartItem({
+                                goodId: id,
+                                qty,
+                                kind: 'buy',
+                                merchantId: offer.merchant.id,
+                              })
+                            }
+                          >
+                            {inCart ? 'Update cart' : 'Add to cart'}
+                          </button>
                         </div>
-                        {inCart ? (
-                          <div className="trade-row__cart-badge">
-                            🛒 ×{inCart.qty} in cart
+                        {isExpanded ? (
+                          <div className="trade-row__details">
+                            <p className="trade-row__details-copy">{getDialog(good.dialogFlavorId)}</p>
+                            <div className="trade-row__offer-list">
+                              {offers.map((localOffer) => (
+                                <span
+                                  key={`${id}-${localOffer.merchant.id}`}
+                                  className={
+                                    localOffer.merchant.id === offer.merchant.id
+                                      ? 'trade-row__offer-pill trade-row__offer-pill--best'
+                                      : 'trade-row__offer-pill'
+                                  }
+                                >
+                                  {localOffer.merchant.label}: {localOffer.row.buy}g
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         ) : null}
                       </li>
@@ -446,244 +605,407 @@ export function TownScreen() {
               )}
             </div>
 
-            {/* Your cargo */}
             <div className="market-column market-column--cargo">
-              <h3 className="market-column__title">Your cargo</h3>
+              <div className="market-column__heading">
+                <h3 className="market-column__title">Sell from cargo</h3>
+                <span className="muted small">
+                  {wantedGoodIds.length} wanted good{wantedGoodIds.length === 1 ? '' : 's'} · {cargoGoods.length} goods carried
+                </span>
+              </div>
               {cargoGoods.length === 0 ? (
-                <p className="market-column__empty">Empty.</p>
+                <p className="market-column__empty">Cargo empty.</p>
               ) : (
                 <ul className="trade-list">
-                  {cargoGoods.map((id) => {
-                    const g = GOODS[id]!
-                    const count = game.inventory[id] ?? 0
-                    const row = active ? effectivePriceRow(game.location, active.id, id, game.day) : undefined
-                    const w = g.weightPerUnit * count
-                    const avgBuy = averageInventoryBuyPrice(game, id)
-                    const sellDelta =
-                      row && avgBuy !== null ? Math.round((row.sell - avgBuy) * 10) / 10 : null
-                    const trend = active
-                      ? getPriceTrendDirection(game.location, active.id, id, game.day)
-                      : 'flat'
-                    const seasonLabel = getSeasonModifierLabel(id, game.day)
-                    const sparklineData = active
-                      ? getPriceTrend(game.location, active.id, id, game.day, 7)
-                      : []
-                    const sparklineKey = `sell-${id}`
-                    const inCart = cart.find((c) => c.goodId === id && c.kind === 'sell')
-                    return (
-                      <li key={id} className={`trade-row${inCart ? ' trade-row--in-cart' : ''}`}>
-                        <div className="trade-row__item">
-                          <GoodIcon goodId={id} size={24} className="trade-row__icon" />
-                          <div className="trade-row__name">
-                            <strong>{g.name}</strong>
-                            <span className="trade-row__flavor muted small">×{count} · {w} wt</span>
-                            {avgBuy !== null ? (
-                              <span className="trade-row__flavor trade-row__avg-buy muted small">
-                                Avg buy: <strong>{avgBuy === Math.floor(avgBuy) ? avgBuy : avgBuy.toFixed(1)}</strong>
-                              </span>
+                  {sellEntries.map(
+                    ({
+                      id,
+                      count,
+                      offer,
+                      offers,
+                      avgBuy,
+                      sellDelta,
+                      isWanted,
+                      weight,
+                      trend,
+                      seasonLabel,
+                      sparklineData,
+                    }) => {
+                      const good = GOODS[id]!
+                      const key = rowKey('sell', id)
+                      const inCart = offer
+                        ? cart.find(
+                            (item) =>
+                              item.kind === 'sell' && item.goodId === id && item.merchantId === offer.merchant.id,
+                          )
+                        : undefined
+                      const qty = getTradeQty(key, Math.max(count, 1), inCart?.qty ?? 1)
+                      const sparklineKey = `sell-${id}`
+                      const isExpanded = expandedRows[key]
+                      return (
+                        <li
+                          key={id}
+                          className={`trade-row${isWanted ? ' trade-row--wanted' : ''}${inCart ? ' trade-row--in-cart' : ''}`}
+                        >
+                          <div className="trade-row__item">
+                            <GoodIcon goodId={id} size={24} className="trade-row__icon" />
+                            <div className="trade-row__name">
+                              <div className="trade-row__name-line">
+                                <strong>{good.name}</strong>
+                                {offer ? (
+                                  <span className="trade-row__merchant-pill">
+                                    Best buyer: {offer.merchant.label}
+                                  </span>
+                                ) : (
+                                  <span className="trade-row__merchant-pill trade-row__merchant-pill--muted">
+                                    No local buyer
+                                  </span>
+                                )}
+                                {inCart ? (
+                                  <span className="trade-row__cart-chip trade-row__cart-chip--sell">
+                                    Cart ×{inCart.qty}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="trade-row__meta muted small">
+                                <span>×{count} carried</span>
+                                <span>{weight} wt total</span>
+                                <button
+                                  type="button"
+                                  className="linkish trade-row__details-toggle"
+                                  onClick={() => toggleRowExpanded(key)}
+                                >
+                                  {isExpanded ? 'Hide details' : 'Details'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="trade-row__prices">
+                            {offer ? (
+                              <>
+                                <div className="trade-row__price-line">
+                                  {isWanted ? (
+                                    <span className="trade-row__badge trade-row__badge--wanted" title="This town pays above its usual market baseline for this good">
+                                      Wanted here
+                                    </span>
+                                  ) : null}
+                                  {seasonLabel ? (
+                                    <span
+                                      className={
+                                        seasonLabel.startsWith('+')
+                                          ? 'trade-row__season-badge trade-row__season-badge--up'
+                                          : 'trade-row__season-badge trade-row__season-badge--down'
+                                      }
+                                    >
+                                      {seasonLabel}
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <span className="trade-row__price">
+                                  Sell <strong>{offer.row.sell}</strong>g
+                                  <span
+                                    className={`trade-row__trend trade-row__trend--${trend}`}
+                                    title={`Price trend: ${trend}`}
+                                    onMouseEnter={() => setHoveredSparkline(sparklineKey)}
+                                    onMouseLeave={() => setHoveredSparkline(null)}
+                                  >
+                                    {trendArrow(trend)}
+                                  </span>
+                                </span>
+                                {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
+                                  <Sparkline data={sparklineData} />
+                                ) : null}
+                                {sellDelta !== null ? (
+                                  <span
+                                    className={
+                                      sellDelta >= 0
+                                        ? 'trade-row__vs-avg trade-row__vs-avg--up'
+                                        : 'trade-row__vs-avg trade-row__vs-avg--down'
+                                    }
+                                  >
+                                    {sellDelta >= 0 ? '+' : ''}
+                                    {sellDelta === Math.floor(sellDelta) ? sellDelta : sellDelta.toFixed(1)} vs avg
+                                  </span>
+                                ) : null}
+                              </>
                             ) : (
-                              <span className="trade-row__flavor muted small">Avg buy: —</span>
+                              <span className="trade-row__price muted small">Not buying today</span>
                             )}
                           </div>
-                        </div>
-                        {row ? (
-                          <>
-                            <div className="trade-row__prices">
-                              {seasonLabel ? (
-                                <span
-                                  className={
-                                    seasonLabel.startsWith('+')
-                                      ? 'trade-row__season-badge trade-row__season-badge--up'
-                                      : 'trade-row__season-badge trade-row__season-badge--down'
-                                  }
-                                >
-                                  {seasonLabel}
-                                </span>
-                              ) : null}
-                              <span className="trade-row__price">
-                                Sell:{' '}
-                                <strong>{row.sell}</strong>g
-                                <span
-                                  className={`trade-row__trend trade-row__trend--${trend}`}
-                                  title={`Price trend: ${trend}`}
-                                  onMouseEnter={() => setHoveredSparkline(sparklineKey)}
-                                  onMouseLeave={() => setHoveredSparkline(null)}
-                                >
-                                  {trendArrow(trend)}
-                                </span>
-                              </span>
-                              {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
-                                <Sparkline data={sparklineData.map((p) => p.sell)} />
-                              ) : null}
-                              {sellDelta !== null ? (
-                                <span
-                                  className={
-                                    sellDelta >= 0
-                                      ? 'trade-row__vs-avg trade-row__vs-avg--up'
-                                      : 'trade-row__vs-avg trade-row__vs-avg--down'
-                                  }
-                                >
-                                  {sellDelta >= 0 ? '+' : ''}
-                                  {sellDelta === Math.floor(sellDelta) ? sellDelta : sellDelta.toFixed(1)} vs avg
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="trade-row__sell-actions">
-                              <button
-                                type="button"
-                                className="trade-row__btn trade-row__btn--sell"
-                                title={qty === 1 ? 'Sell 1 instantly' : `Sell ${qty} (confirm)`}
-                                onClick={() => handleSellClick(id, row.sell, qty)}
-                              >
-                                Sell {qty === 1 ? '1' : `×${qty}`}
-                              </button>
-                              <button
-                                type="button"
-                                className="trade-row__btn trade-row__btn--sell ghost small"
-                                title={`Add ${qty} to cart`}
-                                onClick={() => addToCart('sell', id, qty)}
-                              >
-                                + Cart
-                              </button>
-                              <button
-                                type="button"
-                                className="trade-row__btn trade-row__btn--sell ghost small"
-                                title={`Sell all ${count} at ${row.sell} each`}
-                                onClick={() => handleSellAllClick(id, row.sell, count)}
-                              >
-                                Sell all
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="trade-row__prices">
-                              <span className="trade-row__price muted small">Not buying</span>
-                            </div>
-                            <div className="trade-row__btn trade-row__btn--disabled">—</div>
-                          </>
-                        )}
-                        {inCart ? (
-                          <div className="trade-row__cart-badge trade-row__cart-badge--sell">
-                            🛒 ×{inCart.qty} in cart
+                          <QtyStepper
+                            value={qty}
+                            max={Math.max(count, 1)}
+                            disabled={!offer}
+                            shortcutLabel="All"
+                            shortcutDisabled={!offer}
+                            onChange={(next) => setTradeQtyFor(key, next, Math.max(count, 1))}
+                            onShortcut={() => setTradeQtyFor(key, count, Math.max(count, 1))}
+                          />
+                          <div className="trade-row__actions">
+                            <button
+                              type="button"
+                              className="trade-row__btn trade-row__btn--sell"
+                              disabled={!offer}
+                              onClick={() => {
+                                if (!offer) return
+                                requestTrade('sell', id, qty, offer.merchant.id, offer.merchant.label, offer.row.sell)
+                              }}
+                            >
+                              {qty === 1 ? 'Sell now' : `Sell ×${qty}`}
+                            </button>
+                            <button
+                              type="button"
+                              className="trade-row__btn ghost small"
+                              disabled={!offer}
+                              onClick={() => {
+                                if (!offer) return
+                                setCartItem({
+                                  goodId: id,
+                                  qty,
+                                  kind: 'sell',
+                                  merchantId: offer.merchant.id,
+                                })
+                              }}
+                            >
+                              {inCart ? 'Update cart' : 'Add to cart'}
+                            </button>
                           </div>
-                        ) : null}
-                      </li>
-                    )
-                  })}
+                          {isExpanded ? (
+                            <div className="trade-row__details">
+                              <p className="trade-row__details-copy">{getDialog(good.dialogFlavorId)}</p>
+                              <div className="trade-row__offer-list">
+                                {offers.length ? (
+                                  offers.map((localOffer) => (
+                                    <span
+                                      key={`${id}-${localOffer.merchant.id}`}
+                                      className={
+                                        offer && localOffer.merchant.id === offer.merchant.id
+                                          ? 'trade-row__offer-pill trade-row__offer-pill--best'
+                                          : 'trade-row__offer-pill'
+                                      }
+                                    >
+                                      {localOffer.merchant.label}: {localOffer.row.sell}g
+                                    </span>
+                                  ))
+                                ) : (
+                                  <span className="trade-row__offer-pill trade-row__offer-pill--muted">
+                                    Nobody in town is buying this good right now.
+                                  </span>
+                                )}
+                              </div>
+                              <div className="trade-row__details-meta muted small">
+                                {avgBuy !== null ? (
+                                  <span>
+                                    Avg buy: {avgBuy === Math.floor(avgBuy) ? avgBuy : avgBuy.toFixed(1)}g
+                                  </span>
+                                ) : (
+                                  <span>Avg buy: —</span>
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
+                        </li>
+                      )
+                    },
+                  )}
                 </ul>
               )}
             </div>
           </div>
 
-          {/* Cart / checkout panel */}
-          {cart.length > 0 ? (
-            <div className="cart-panel">
-              <div className="cart-panel__header">
-                <h3 className="cart-panel__title">🛒 Cart</h3>
-                <button
-                  type="button"
-                  className="ghost small"
-                  onClick={() => setCart([])}
-                >
-                  Clear all
-                </button>
+          <aside className="trade-sidebar">
+            <div className="market-tip-card">
+              <div className="market-tip-card__header">
+                <h3 className="market-tip-card__title">Market tip</h3>
+                <span className="muted small">Regional read</span>
               </div>
-              <ul className="cart-list">
-                {cart.map((item) => {
-                  const g = GOODS[item.goodId]
-                  const row = active
-                    ? effectivePriceRow(game.location, active.id, item.goodId, game.day)
-                    : undefined
-                  const unitPrice = row ? (item.kind === 'buy' ? row.buy : row.sell) : 0
-                  const total = unitPrice * item.qty
-                  const wt = g ? g.weightPerUnit * item.qty : 0
-                  return (
-                    <li key={`${item.kind}-${item.goodId}`} className="cart-row">
-                      <GoodIcon goodId={item.goodId} size={18} className="cart-row__icon" />
-                      <span className={`cart-row__kind cart-row__kind--${item.kind}`}>
-                        {item.kind === 'buy' ? 'Buy' : 'Sell'}
+              <p className="market-tip-card__hint muted small">
+                Cheap here shows what this town is known for selling. Wanted here shows what usually earns a premium.
+              </p>
+              <div className="market-tip-card__group">
+                <span className="market-tip-card__label">Cheap here</span>
+                <div className="market-tip-card__chips">
+                  {primaryGoodIds.length > 0 ? (
+                    primaryGoodIds.map((goodId) => (
+                      <span key={goodId} className="market-tip-card__chip market-tip-card__chip--cheap">
+                        {GOODS[goodId]!.name}
                       </span>
-                      <span className="cart-row__name">{g?.name ?? item.goodId}</span>
-                      <div className="cart-row__qty-wrap">
-                        <button
-                          type="button"
-                          className="cart-row__qty-btn"
-                          onClick={() => updateCartQty(item.goodId, item.kind, item.qty - 1)}
-                        >
-                          −
-                        </button>
-                        <span className="cart-row__qty">{item.qty}</span>
-                        <button
-                          type="button"
-                          className="cart-row__qty-btn"
-                          onClick={() => updateCartQty(item.goodId, item.kind, item.qty + 1)}
-                        >
-                          +
-                        </button>
-                      </div>
-                      <span className="cart-row__wt muted small">{wt} wt</span>
-                      <span className={`cart-row__total ${item.kind === 'buy' ? 'cost' : 'gain'}`}>
-                        {item.kind === 'buy' ? '−' : '+'}{total}g
-                      </span>
-                      <button
-                        type="button"
-                        className="cart-row__remove ghost small"
-                        onClick={() => removeFromCart(item.goodId, item.kind)}
-                        aria-label="Remove from cart"
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-              <div className="cart-panel__summary">
-                <div className="cart-summary-row">
-                  <span>Gold after checkout</span>
-                  <strong className={goldAfterCart < 0 ? 'cost' : ''}>{goldAfterCart}g</strong>
+                    ))
+                  ) : (
+                    <span className="market-tip-card__empty muted small">No clear specialty.</span>
+                  )}
                 </div>
-                <div className="cart-summary-row">
-                  <span>Cargo after checkout</span>
-                  <strong className={weightAfterCart > maxWeight ? 'cost' : ''}>
-                    {weightAfterCart} / {maxWeight} wt
+              </div>
+              <div className="market-tip-card__group">
+                <span className="market-tip-card__label">Wanted here</span>
+                <div className="market-tip-card__chips">
+                  {wantedGoodIds.length > 0 ? (
+                    wantedGoodIds.map((goodId) => (
+                      <span key={goodId} className="market-tip-card__chip market-tip-card__chip--wanted">
+                        {GOODS[goodId]!.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="market-tip-card__empty muted small">No strong demand signal.</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="trade-summary-card">
+              <div className="trade-summary-card__header">
+                <div>
+                  <h3 className="trade-summary-card__title">Trade summary</h3>
+                  <p className="trade-summary-card__hint muted small">
+                    Sells resolve before buys at checkout.
+                  </p>
+                </div>
+                {cart.length > 0 ? (
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => {
+                      setCart([])
+                      setShowCartDetails(true)
+                    }}
+                  >
+                    Clear cart
+                  </button>
+                ) : null}
+              </div>
+              <div className="trade-summary-card__rows">
+                <div className="trade-summary-row">
+                  <span>Gold</span>
+                  <strong className={goldAfterCart < 0 ? 'cost' : ''}>
+                    {game.gold}g → {goldAfterCart}g
                   </strong>
                 </div>
-                {cartBuy > 0 && (
-                  <div className="cart-summary-row cart-summary-row--sub">
+                <div className="trade-summary-row">
+                  <span>Spare space</span>
+                  <strong className={spareAfterCart < 0 ? 'cost' : ''}>
+                    {spare} wt → {spareAfterCart} wt
+                  </strong>
+                </div>
+                <div className="trade-summary-row trade-summary-row--sub">
+                  <span>Cart items</span>
+                  <span>{cart.length}</span>
+                </div>
+                {cartBuy > 0 ? (
+                  <div className="trade-summary-row trade-summary-row--sub">
                     <span>Buying</span>
                     <span className="cost">−{cartBuy}g</span>
                   </div>
-                )}
-                {cartSell > 0 && (
-                  <div className="cart-summary-row cart-summary-row--sub">
+                ) : null}
+                {cartSell > 0 ? (
+                  <div className="trade-summary-row trade-summary-row--sub">
                     <span>Selling</span>
                     <span className="gain">+{cartSell}g</span>
                   </div>
-                )}
+                ) : null}
               </div>
-              <div className="cart-panel__actions">
-                {goldAfterCart < 0 && (
-                  <p className="cart-panel__warn muted small">Not enough gold.</p>
-                )}
-                {weightAfterCart > maxWeight && (
-                  <p className="cart-panel__warn muted small">Exceeds cargo capacity.</p>
-                )}
-                <button
-                  type="button"
-                  className="cart-checkout-btn"
-                  disabled={!canCheckout}
-                  onClick={() => {
-                    executeBatch(cart)
-                    setCart([])
-                  }}
-                >
-                  Checkout ({cart.length} item{cart.length !== 1 ? 's' : ''})
-                </button>
-              </div>
+              {cart.length === 0 ? (
+                <p className="trade-summary-card__empty muted small">
+                  Stage trades from the lists to keep gold and cargo changes in view.
+                </p>
+              ) : null}
+              {goldAfterCart < 0 ? (
+                <p className="cart-panel__warn muted small">Not enough gold for this cart.</p>
+              ) : null}
+              {weightAfterCart > maxWeight ? (
+                <p className="cart-panel__warn muted small">Cart would exceed cargo capacity.</p>
+              ) : null}
+              <button
+                type="button"
+                className="cart-checkout-btn"
+                disabled={!canCheckout}
+                onClick={() => {
+                  executeBatch(cart)
+                  setCart([])
+                  setShowCartDetails(true)
+                }}
+              >
+                Checkout ({cart.length} item{cart.length !== 1 ? 's' : ''})
+              </button>
             </div>
-          ) : null}
-        </>
+
+            <div className="cart-panel cart-panel--sidebar">
+              <div className="cart-panel__header">
+                <h3 className="cart-panel__title">Cart lines</h3>
+                {cart.length > 0 ? (
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => setShowCartDetails((value) => !value)}
+                  >
+                    {showCartDetails ? 'Hide' : 'Show'}
+                  </button>
+                ) : null}
+              </div>
+              {cart.length === 0 ? (
+                <p className="cart-panel__empty muted small">No staged trades yet.</p>
+              ) : showCartDetails ? (
+                <ul className="cart-list">
+                  {cart.map((item) => {
+                    const good = GOODS[item.goodId]
+                    const merchant = merchants.find((entry) => entry.id === item.merchantId)
+                    const row = effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
+                    const unitPrice = row ? (item.kind === 'buy' ? row.buy : row.sell) : 0
+                    const total = unitPrice * item.qty
+                    const weight = good ? good.weightPerUnit * item.qty : 0
+                    return (
+                      <li key={`${item.kind}-${item.goodId}-${item.merchantId}`} className="cart-row">
+                        <GoodIcon goodId={item.goodId} size={18} className="cart-row__icon" />
+                        <span className={`cart-row__kind cart-row__kind--${item.kind}`}>
+                          {item.kind === 'buy' ? 'Buy' : 'Sell'}
+                        </span>
+                        <span className="cart-row__name-block">
+                          <span className="cart-row__name">{good?.name ?? item.goodId}</span>
+                          <span className="cart-row__merchant muted small">
+                            {merchant?.label ?? item.merchantId}
+                          </span>
+                        </span>
+                        <div className="cart-row__qty-wrap">
+                          <button
+                            type="button"
+                            className="cart-row__qty-btn"
+                            onClick={() =>
+                              updateCartQty(item.goodId, item.kind, item.merchantId, item.qty - 1)
+                            }
+                          >
+                            −
+                          </button>
+                          <span className="cart-row__qty">{item.qty}</span>
+                          <button
+                            type="button"
+                            className="cart-row__qty-btn"
+                            onClick={() =>
+                              updateCartQty(item.goodId, item.kind, item.merchantId, item.qty + 1)
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                        <span className="cart-row__wt muted small">{weight} wt</span>
+                        <span className={`cart-row__total ${item.kind === 'buy' ? 'cost' : 'gain'}`}>
+                          {item.kind === 'buy' ? '−' : '+'}{total}g
+                        </span>
+                        <button
+                          type="button"
+                          className="cart-row__remove ghost small"
+                          onClick={() => removeFromCart(item.goodId, item.kind, item.merchantId)}
+                          aria-label="Remove from cart"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              ) : (
+                <p className="cart-panel__empty muted small">Cart lines hidden.</p>
+              )}
+            </div>
+          </aside>
+        </div>
       ) : (
         /* Warehouse tab */
         <WarehousePanel
@@ -724,12 +1046,16 @@ export function TownScreen() {
                   Buy <strong>{pendingTrade.qty}</strong> × {GOODS[pendingTrade.goodId]!.name} at{' '}
                   <strong>{pendingTrade.unitGold}</strong>g each?
                   <br />
+                  <span className="trade-confirm-dialog__merchant">Merchant: {pendingTrade.merchantLabel}</span>
+                  <br />
                   <span className="trade-confirm-dialog__total">Total: {pendingTrade.totalGold}g</span>
                 </>
               ) : (
                 <>
                   Sell <strong>{pendingTrade.qty}</strong> × {GOODS[pendingTrade.goodId]!.name} at{' '}
                   <strong>{pendingTrade.unitGold}</strong>g each?
+                  <br />
+                  <span className="trade-confirm-dialog__merchant">Buyer: {pendingTrade.merchantLabel}</span>
                   <br />
                   <span className="trade-confirm-dialog__total">You receive: {pendingTrade.totalGold}g</span>
                 </>
@@ -744,8 +1070,8 @@ export function TownScreen() {
                 onClick={() => {
                   const p = pendingTrade
                   setPendingTrade(null)
-                  if (p.kind === 'buy') buy(p.goodId, p.qty)
-                  else sell(p.goodId, p.qty)
+                  if (p.kind === 'buy') buyAtMerchant(p.goodId, p.qty, p.merchantId)
+                  else sellToMerchant(p.goodId, p.qty, p.merchantId)
                 }}
               >
                 {pendingTrade.kind === 'buy' ? 'Buy' : 'Sell'}
@@ -755,6 +1081,68 @@ export function TownScreen() {
         </div>
       ) : null}
     </section>
+  )
+}
+
+interface QtyStepperProps {
+  value: number
+  max: number
+  disabled?: boolean
+  shortcutLabel: string
+  shortcutDisabled?: boolean
+  onChange: (next: number) => void
+  onShortcut: () => void
+}
+
+function QtyStepper({
+  value,
+  max,
+  disabled = false,
+  shortcutLabel,
+  shortcutDisabled = false,
+  onChange,
+  onShortcut,
+}: QtyStepperProps) {
+  const safeMax = Math.max(1, max)
+
+  return (
+    <div className={`trade-qty${disabled ? ' trade-qty--disabled' : ''}`}>
+      <button
+        type="button"
+        className="trade-qty__btn"
+        disabled={disabled || value <= 1}
+        onClick={() => onChange(Math.max(1, value - 1))}
+        aria-label="Decrease quantity"
+      >
+        −
+      </button>
+      <input
+        type="number"
+        className="trade-qty__input"
+        min={1}
+        max={safeMax}
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(Math.max(1, Math.min(safeMax, Number(e.target.value) || 1)))}
+      />
+      <button
+        type="button"
+        className="trade-qty__btn"
+        disabled={disabled || value >= safeMax}
+        onClick={() => onChange(Math.min(safeMax, value + 1))}
+        aria-label="Increase quantity"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        className="trade-qty__shortcut ghost small"
+        disabled={disabled || shortcutDisabled}
+        onClick={onShortcut}
+      >
+        {shortcutLabel}
+      </button>
+    </div>
   )
 }
 

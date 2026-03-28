@@ -1,4 +1,5 @@
 import type { GoodId, MerchantId, TownId } from '../core/types.ts'
+import { GOOD_IDS } from './goods.ts'
 import { getEffectivePrice, type PriceRow } from './prices.ts'
 
 /** What kind of stall this is — stock is chosen by role so each merchant has a clear specialty. */
@@ -54,16 +55,18 @@ const ASHENFORD: MerchantDef[] = [
     tagline: 'Miners need salt, fish, and grain — and pay dearly for all three.',
     icon: '🛒',
     catalog: {
-      silk: { buy: 28, sell: 17 },
-      wine: { buy: 16, sell: 9 },
-      salt: { buy: 22, sell: 13 },
+      silk: { buy: 28, sell: 22 },
+      wine: { buy: 16, sell: 13 },
+      salt: { buy: 22, sell: 16 },
       fresh_fish: { buy: 16, sell: 10 },
-      salted_fish: { buy: 26, sell: 15 },
-      smoked_fish: { buy: 32, sell: 19 },
-      grain: { buy: 16, sell: 10 },
-      tallow: { buy: 14, sell: 8 },
+      salted_fish: { buy: 24, sell: 18 },
+      smoked_fish: { buy: 32, sell: 24 },
+      grain: { buy: 16, sell: 12 },
+      tallow: { buy: 15, sell: 11 },
       herbs: { buy: 12, sell: 7 },
       rope: { buy: 9, sell: 5 },
+      crown_amber: { buy: 58, sell: 44 },
+      fen_spice: { buy: 46, sell: 34 },
     },
   },
 ]
@@ -77,12 +80,12 @@ const MIRECROSS: MerchantDef[] = [
     tagline: 'Peat, timber, and river catch — the fen provides what the road forgets.',
     icon: '🌫️',
     catalog: {
-      peat: { buy: 5, sell: 3 },
+      peat: { buy: 4, sell: 2 },
       timber: { buy: 11, sell: 7 },
-      fresh_fish: { buy: 10, sell: 6 },
-      fish_sauce: { buy: 44, sell: 27 },
+      fresh_fish: { buy: 9, sell: 5 },
+      fish_sauce: { buy: 42, sell: 30 },
       herbs: { buy: 7, sell: 4 },
-      tallow: { buy: 9, sell: 5 },
+      tallow: { buy: 8, sell: 6 },
     },
   },
   {
@@ -93,9 +96,9 @@ const MIRECROSS: MerchantDef[] = [
     tagline: 'Iron and coal cost blood here — bring some from the mountain.',
     icon: '🏚️',
     catalog: {
-      silk: { buy: 24, sell: 14 },
+      silk: { buy: 22, sell: 16 },
       rope: { buy: 8, sell: 5 },
-      wine: { buy: 13, sell: 8 },
+      wine: { buy: 12, sell: 8 },
       salt: { buy: 18, sell: 11 },
       iron: { buy: 26, sell: 16 },
       coal: { buy: 20, sell: 12 },
@@ -111,9 +114,9 @@ const MIRECROSS: MerchantDef[] = [
     tagline: 'Dreaming moss and fen remedies — no refunds if you dream wrong.',
     icon: '🐸',
     catalog: {
-      dreaming_moss: { buy: 7, sell: 4 },
+      dreaming_moss: { buy: 6, sell: 4 },
       herbs: { buy: 7, sell: 4 },
-      peat: { buy: 5, sell: 3 },
+      peat: { buy: 4, sell: 2 },
     },
   },
 ]
@@ -128,10 +131,10 @@ const RIVERSEND: MerchantDef[] = [
     icon: '🎣',
     catalog: {
       fresh_fish: { buy: 6, sell: 4 },
-      salted_fish: { buy: 20, sell: 12 },
-      smoked_fish: { buy: 26, sell: 16 },
+      salted_fish: { buy: 14, sell: 10 },
+      smoked_fish: { buy: 18, sell: 14 },
       salt: { buy: 8, sell: 5 },
-      peat: { buy: 8, sell: 5 },
+      peat: { buy: 8, sell: 6 },
     },
   },
   {
@@ -145,11 +148,13 @@ const RIVERSEND: MerchantDef[] = [
       rope: { buy: 7, sell: 4 },
       pitch: { buy: 22, sell: 13 },
       timber: { buy: 24, sell: 14 },
-      wine: { buy: 18, sell: 11 },
-      silk: { buy: 34, sell: 20 },
+      wine: { buy: 18, sell: 14 },
+      silk: { buy: 34, sell: 24 },
       coal: { buy: 22, sell: 13 },
       metal_tools: { buy: 32, sell: 19 },
       grain: { buy: 18, sell: 11 },
+      crown_amber: { buy: 54, sell: 40 },
+      obsidian_glass: { buy: 20, sell: 14 },
     },
   },
   {
@@ -161,9 +166,10 @@ const RIVERSEND: MerchantDef[] = [
     icon: '🌙',
     catalog: {
       herbs: { buy: 7, sell: 4 },
-      dreaming_moss: { buy: 9, sell: 5 },
-      fish_sauce: { buy: 38, sell: 23 },
+      dreaming_moss: { buy: 12, sell: 9 },
+      fish_sauce: { buy: 28, sell: 22 },
       iron: { buy: 20, sell: 12 },
+      fen_spice: { buy: 46, sell: 34 },
     },
   },
 ]
@@ -177,14 +183,17 @@ const CROWNPOST: MerchantDef[] = [
     tagline: 'Amber stamped for the crown; clerks hum different numbers after noon.',
     icon: '🏛️',
     catalog: {
-      crown_amber: { buy: 42, sell: 26 },
-      wine: { buy: 14, sell: 8 },
-      silk: { buy: 28, sell: 17 },
+      crown_amber: { buy: 38, sell: 24 },
+      wine: { buy: 12, sell: 8 },
+      silk: { buy: 20, sell: 14 },
       grain: { buy: 10, sell: 6 },
       herbs: { buy: 11, sell: 6 },
-      smoked_fish: { buy: 34, sell: 20 },
-      fish_sauce: { buy: 48, sell: 29 },
-      tallow: { buy: 13, sell: 8 },
+      smoked_fish: { buy: 34, sell: 25 },
+      fish_sauce: { buy: 44, sell: 34 },
+      tallow: { buy: 13, sell: 11 },
+      fen_spice: { buy: 48, sell: 36 },
+      dreaming_moss: { buy: 14, sell: 10 },
+      obsidian_glass: { buy: 20, sell: 14 },
     },
   },
   {
@@ -196,8 +205,8 @@ const CROWNPOST: MerchantDef[] = [
     icon: '📦',
     catalog: {
       iron: { buy: 13, sell: 8 },
-      rope: { buy: 10, sell: 6 },
-      obsidian_glass: { buy: 15, sell: 9 },
+      rope: { buy: 10, sell: 7 },
+      obsidian_glass: { buy: 15, sell: 11 },
       salt: { buy: 20, sell: 12 },
       coal: { buy: 18, sell: 11 },
       timber: { buy: 22, sell: 13 },
@@ -216,14 +225,14 @@ const FENWARD: MerchantDef[] = [
     tagline: 'Pitch, spice, and timber from the fen edge — bring grain if you want to eat.',
     icon: '🛖',
     catalog: {
-      fen_spice: { buy: 36, sell: 21 },
-      peat: { buy: 6, sell: 3 },
+      fen_spice: { buy: 30, sell: 18 },
+      peat: { buy: 5, sell: 3 },
       pitch: { buy: 11, sell: 7 },
       timber: { buy: 12, sell: 7 },
       dreaming_moss: { buy: 8, sell: 5 },
       fresh_fish: { buy: 11, sell: 6 },
-      smoked_fish: { buy: 36, sell: 22 },
-      fish_sauce: { buy: 46, sell: 28 },
+      smoked_fish: { buy: 22, sell: 16 },
+      fish_sauce: { buy: 38, sell: 30 },
     },
   },
   {
@@ -234,12 +243,12 @@ const FENWARD: MerchantDef[] = [
     tagline: 'Grain, tools, and coal — the fen pays dearly for what it cannot make.',
     icon: '🌑',
     catalog: {
-      dreaming_moss: { buy: 10, sell: 6 },
+      dreaming_moss: { buy: 12, sell: 8 },
       herbs: { buy: 9, sell: 5 },
-      grain: { buy: 20, sell: 12 },
-      coal: { buy: 22, sell: 13 },
-      metal_tools: { buy: 34, sell: 21 },
-      salt: { buy: 18, sell: 11 },
+      grain: { buy: 20, sell: 14 },
+      coal: { buy: 22, sell: 15 },
+      metal_tools: { buy: 34, sell: 24 },
+      salt: { buy: 18, sell: 12 },
     },
   },
 ]
@@ -268,11 +277,12 @@ const STONEHOLT: MerchantDef[] = [
     icon: '🏕️',
     catalog: {
       grain: { buy: 20, sell: 12 },
-      wine: { buy: 22, sell: 13 },
+      wine: { buy: 22, sell: 17 },
       herbs: { buy: 15, sell: 9 },
-      silk: { buy: 32, sell: 19 },
-      rope: { buy: 11, sell: 6 },
+      silk: { buy: 32, sell: 24 },
+      rope: { buy: 11, sell: 7 },
       salt: { buy: 24, sell: 14 },
+      crown_amber: { buy: 56, sell: 44 },
     },
   },
 ]
@@ -304,8 +314,8 @@ const SALTMERE: MerchantDef[] = [
       coal: { buy: 24, sell: 14 },
       metal_tools: { buy: 34, sell: 21 },
       timber: { buy: 26, sell: 16 },
-      salted_fish: { buy: 18, sell: 11 },
-      smoked_fish: { buy: 24, sell: 14 },
+      salted_fish: { buy: 12, sell: 8 },
+      smoked_fish: { buy: 16, sell: 12 },
     },
   },
 ]
@@ -371,6 +381,26 @@ export function bestSellPriceAtTown(townId: TownId, goodId: GoodId, day: number)
   return best
 }
 
+/** Cheapest base buy price (no daily variance) for a good in town. */
+export function bestBaseBuyPriceAtTown(townId: TownId, goodId: GoodId): number {
+  let best = Number.POSITIVE_INFINITY
+  for (const m of merchantsForTown(townId)) {
+    const row = m.catalog[goodId]
+    if (row && row.buy < best) best = row.buy
+  }
+  return Number.isFinite(best) ? best : 0
+}
+
+/** Best base sell price (no daily variance) for a good in town. */
+export function bestBaseSellPriceAtTown(townId: TownId, goodId: GoodId): number {
+  let best = 0
+  for (const m of merchantsForTown(townId)) {
+    const row = m.catalog[goodId]
+    if (row && row.sell > best) best = row.sell
+  }
+  return best
+}
+
 /** Median effective buy price for a good across all merchants who list it (this day). */
 export function medianEffectiveBuyPrice(goodId: GoodId, day: number): number {
   const buys: number[] = []
@@ -399,6 +429,60 @@ export function medianBuyPrice(goodId: GoodId): number {
   buys.sort((a, b) => a - b)
   const mid = Math.floor(buys.length / 2)
   return buys.length === 0 ? 0 : buys.length % 2 ? buys[mid]! : (buys[mid - 1]! + buys[mid]!) / 2
+}
+
+/** Median of base catalog sell prices (no daily variance). */
+export function medianSellPrice(goodId: GoodId): number {
+  const sells: number[] = []
+  for (const town of Object.values(MERCHANTS_BY_TOWN)) {
+    for (const m of town) {
+      const row = m.catalog[goodId]
+      if (row) sells.push(row.sell)
+    }
+  }
+  sells.sort((a, b) => a - b)
+  const mid = Math.floor(sells.length / 2)
+  return sells.length === 0 ? 0 : sells.length % 2 ? sells[mid]! : (sells[mid - 1]! + sells[mid]!) / 2
+}
+
+/**
+ * Goods this town is structurally good at selling to the player.
+ * Uses base prices so the town identity stays stable across days.
+ */
+export function townPrimaryGoods(townId: TownId, limit = 4): GoodId[] {
+  return GOOD_IDS
+    .map((goodId) => {
+      const localBuy = bestBaseBuyPriceAtTown(townId, goodId)
+      const median = medianBuyPrice(goodId)
+      if (localBuy <= 0 || median <= 0) return null
+      const advantage = median - localBuy
+      if (advantage <= 0) return null
+      return { goodId, score: advantage / median, tieBreak: advantage, localBuy }
+    })
+    .filter((entry): entry is { goodId: GoodId; score: number; tieBreak: number; localBuy: number } => entry !== null)
+    .sort((a, b) => b.score - a.score || b.tieBreak - a.tieBreak || a.localBuy - b.localBuy)
+    .slice(0, limit)
+    .map((entry) => entry.goodId)
+}
+
+/**
+ * Goods this town structurally pays above the wider market for.
+ * Uses base prices so "wanted here" remains readable and predictable.
+ */
+export function townDemandGoods(townId: TownId, limit = 4): GoodId[] {
+  return GOOD_IDS
+    .map((goodId) => {
+      const localSell = bestBaseSellPriceAtTown(townId, goodId)
+      const median = medianSellPrice(goodId)
+      if (localSell <= 0 || median <= 0) return null
+      const premium = localSell - median
+      if (premium <= 0) return null
+      return { goodId, score: premium / median, tieBreak: premium, localSell }
+    })
+    .filter((entry): entry is { goodId: GoodId; score: number; tieBreak: number; localSell: number } => entry !== null)
+    .sort((a, b) => b.score - a.score || b.tieBreak - a.tieBreak || b.localSell - a.localSell)
+    .slice(0, limit)
+    .map((entry) => entry.goodId)
 }
 
 export function isLocalDeal(
