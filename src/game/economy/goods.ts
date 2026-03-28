@@ -108,6 +108,20 @@ export const GOODS: Record<GoodId, Good> = {
     dialogFlavorId: 'good_lucky_carp_bone',
     icon: '🦴',
   },
+  crown_amber: {
+    id: 'crown_amber',
+    name: 'Crown amber',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_crown_amber',
+    icon: '💎',
+  },
+  fen_spice: {
+    id: 'fen_spice',
+    name: 'Fen spice crate',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_fen_spice',
+    icon: '🧄',
+  },
 }
 
 export const GOOD_IDS = Object.keys(GOODS) as GoodId[]

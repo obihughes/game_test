@@ -20,4 +20,19 @@ export const QUESTS: QuestDef[] = [
     titleKey: 'quest_intro_caravan_title',
     bodyKey: 'quest_intro_caravan_body',
   },
+  {
+    id: 'post_wealth',
+    titleKey: 'quest_post_wealth_title',
+    bodyKey: 'quest_post_wealth_body',
+  },
+  {
+    id: 'post_delivery',
+    titleKey: 'quest_post_delivery_title',
+    bodyKey: 'quest_post_delivery_body',
+  },
+  {
+    id: 'post_caravan',
+    titleKey: 'quest_post_caravan_title',
+    bodyKey: 'quest_post_caravan_body',
+  },
 ]

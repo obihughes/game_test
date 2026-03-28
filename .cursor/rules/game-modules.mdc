@@ -7,9 +7,9 @@ globs: src/**/*
 
 - **Dialog / flavor text:** `src/content/dialog/dialog.ts` (keys only; logic stays in `src/game/quests`).
 - **Location stories & market backgrounds:** `src/content/locationContent.ts`; pixel town icons: `src/ui/icons/LocationPixelIcon.tsx`.
-- **Goods & merchants:** `src/game/economy/goods.ts`, `src/game/economy/merchants.ts` (per-town stalls and catalogs), `src/game/economy/prices.ts` (`PriceRow` types); buy/sell rules in `src/game/economy/buySell.ts` (merchant-scoped).
-- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts`.
-- **Caravan upgrades:** `src/game/caravan/` — `cartTiers.ts`, `horses.ts`, `hires.ts`, `actions.ts` — capacity in `capacity.ts`.
+- **Goods & merchants:** `src/game/economy/goods.ts`, `src/game/economy/merchants.ts` (per-town stalls, `effectivePriceRow`, `isLocalDeal`), `src/game/economy/prices.ts` (`getEffectivePrice` daily variance); buy/sell + cost basis + `tradeGoldSpent` / `tradeGoldEarned` in `src/game/economy/buySell.ts`.
+- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts` (`computeTravelLeg`: guard toll discount, scout −1 travel day).
+- **Caravan upgrades:** `src/game/caravan/` — `cartTiers.ts`, `horses.ts`, `hires.ts`, `actions.ts` (`hire` / `dismissHire`) — capacity in `capacity.ts`.
 - **Quests:** `src/game/quests/definitions.ts` + `questLogic.ts`.
 - **Map look (SVG/CSS/colors):** `src/ui/map/` and `src/content/mapLayout.ts` for positions.
 - **Save game:** `src/game/persistence/` — key in `constants.ts`.

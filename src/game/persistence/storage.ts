@@ -22,6 +22,15 @@ export function migrateState(raw: unknown): GameState {
       activeMerchantId: defaultMerchantIdForTown(g.location),
     }
   }
+  if (!g.inventoryCostBasis || typeof g.inventoryCostBasis !== 'object') {
+    g = { ...g, inventoryCostBasis: {}, version: SAVE_VERSION }
+  }
+  if (typeof g.tradeGoldSpent !== 'number') {
+    g = { ...g, tradeGoldSpent: 0, version: SAVE_VERSION }
+  }
+  if (typeof g.tradeGoldEarned !== 'number') {
+    g = { ...g, tradeGoldEarned: 0, version: SAVE_VERSION }
+  }
   return g
 }
 

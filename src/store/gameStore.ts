@@ -10,10 +10,15 @@ import {
   type TownId,
 } from '@/game/core/index.ts'
 import { defaultMerchantIdForTown, isMerchantAtTown } from '@/game/economy/merchants.ts'
-import { applyTravel } from '@/game/world/travel.ts'
-import { findRoute } from '@/game/world/routes.ts'
-import { travelDaysFor } from '@/game/caravan/horses.ts'
-import { dailyHireCost, upgradeCart as upgradeCartAction, buyHorse, hireRole } from '@/game/caravan/actions.ts'
+import { applyTravel, computeTravelLeg } from '@/game/world/travel.ts'
+import { findRoute, type Route } from '@/game/world/routes.ts'
+import {
+  dailyHireCost,
+  upgradeCart as upgradeCartAction,
+  buyHorse,
+  hireRole,
+  dismissHire as dismissHireAction,
+} from '@/game/caravan/actions.ts'
 import { buyGood, sellGood } from '@/game/economy/buySell.ts'
 import { applyQuestProgress } from '@/game/quests/questLogic.ts'
 import { STORAGE_KEY } from '@/game/persistence/constants.ts'
@@ -28,15 +33,20 @@ export interface GameStore {
   upgradeCart: () => void
   purchaseHorse: () => void
   hire: (role: HireRole) => void
+  dismissHire: (role: HireRole) => void
   clearError: () => void
   reset: () => void
 }
 
-function applyUpkeepForTravel(state: GameState, baseDays: number, horses: number): GameState {
-  const days = travelDaysFor(baseDays, horses)
-  const rate = dailyHireCost(state)
-  if (rate <= 0) return state
-  return { ...state, gold: Math.max(0, state.gold - rate * days) }
+function applyUpkeepForTravel(
+  stateAfterTravel: GameState,
+  stateBeforeTravel: GameState,
+  route: Route,
+): GameState {
+  const { days } = computeTravelLeg(stateBeforeTravel, route)
+  const rate = dailyHireCost(stateAfterTravel)
+  if (rate <= 0) return stateAfterTravel
+  return { ...stateAfterTravel, gold: Math.max(0, stateAfterTravel.gold - rate * days) }
 }
 
 export const useGameStore = create<GameStore>()(
@@ -58,7 +68,7 @@ export const useGameStore = create<GameStore>()(
           if (!r.ok) {
             return { ...s, lastError: r.reason }
           }
-          let next = applyUpkeepForTravel(r.state, route.baseDays, before.caravan.horses)
+          let next = applyUpkeepForTravel(r.state, before, route)
           next = {
             ...next,
             activeMerchantId: defaultMerchantIdForTown(destination),
@@ -111,11 +121,18 @@ export const useGameStore = create<GameStore>()(
           if (!r.ok) return { ...s, lastError: r.reason }
           return { game: applyQuestProgress(r.state), lastError: null }
         }),
+
+      dismissHire: (role) =>
+        set((s) => {
+          const r = dismissHireAction(s.game, role)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: applyQuestProgress(r.state), lastError: null }
+        }),
     }),
     {
       name: STORAGE_KEY,
       partialize: (state) => ({ game: state.game }),
-      version: 2,
+      version: 4,
       migrate: (persisted) => {
         const p = persisted as { game?: GameState }
         if (!p.game || typeof p.game.version !== 'number') {
@@ -132,6 +149,15 @@ export const useGameStore = create<GameStore>()(
             version: SAVE_VERSION,
             activeMerchantId: defaultMerchantIdForTown(g.location),
           }
+        }
+        if (!g.inventoryCostBasis || typeof g.inventoryCostBasis !== 'object') {
+          g = { ...g, inventoryCostBasis: {}, version: SAVE_VERSION }
+        }
+        if (typeof g.tradeGoldSpent !== 'number') {
+          g = { ...g, tradeGoldSpent: 0, version: SAVE_VERSION }
+        }
+        if (typeof g.tradeGoldEarned !== 'number') {
+          g = { ...g, tradeGoldEarned: 0, version: SAVE_VERSION }
         }
         return { game: g, lastError: null }
       },

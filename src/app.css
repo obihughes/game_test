@@ -41,9 +41,58 @@ button:active:not(:disabled) {
 }
 
 .app-shell {
+  position: relative;
   max-width: 1100px;
   margin: 0 auto;
   padding: 1.25rem;
+  padding-top: 3.25rem;
+}
+
+/** Fixed gold readout — visible on every tab while scrolling. */
+.gold-hud {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.75rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid #5c4a36;
+  background: linear-gradient(165deg, #2e261c 0%, #1c1812 100%);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #e8dcc8;
+  max-width: min(420px, calc(100vw - 2rem));
+}
+
+.gold-hud__icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.gold-hud__amount {
+  color: #e4c88a;
+  font-size: 1.05rem;
+}
+
+.gold-hud__trade {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #b8a892;
+  border-left: 1px solid #5c4a3666;
+  padding-left: 0.65rem;
+}
+
+.gold-hud__net--pos {
+  color: #8fbc7a;
+}
+
+.gold-hud__net--neg {
+  color: #c97a7a;
 }
 
 .top-bar {
@@ -287,8 +336,21 @@ button:active:not(:disabled) {
 .market-screen__merchant-select {
   margin-bottom: 1rem;
   display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.merchant-select__row {
+  display: flex;
   gap: 0.75rem;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+.merchant-select__hint {
+  margin: 0;
+  line-height: 1.4;
 }
 
 .merchant-select__label {
@@ -454,6 +516,33 @@ button:active:not(:disabled) {
   gap: 0.3rem;
   text-align: right;
   white-space: nowrap;
+  align-items: flex-end;
+}
+
+.trade-row__badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9fd88a;
+  background: rgba(70, 120, 60, 0.25);
+  border: 1px solid #5a8a4a88;
+  padding: 0.12rem 0.38rem;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.trade-row__sell-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+button.trade-row__btn.small {
+  font-size: 0.78rem;
+  padding: 0.28rem 0.45rem;
+  min-width: auto;
 }
 
 .trade-row__price {
@@ -464,6 +553,24 @@ button:active:not(:disabled) {
 .trade-row__price strong {
   color: #c9a66b;
   font-weight: 600;
+}
+
+.trade-row__avg-buy strong {
+  color: #a89878;
+  font-weight: 600;
+}
+
+.trade-row__vs-avg {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.trade-row__vs-avg--up {
+  color: #7cba6a;
+}
+
+.trade-row__vs-avg--down {
+  color: #c97a6a;
 }
 
 .trade-row__btn {
@@ -502,10 +609,6 @@ button:active:not(:disabled) {
   cursor: default;
   background: transparent;
   border: none;
-}
-
-.stat-line {
-  margin: 0.5rem 0 1rem;
 }
 
 .stat-line {
@@ -610,10 +713,113 @@ button:active:not(:disabled) {
   margin: 0.5rem 0 1rem;
 }
 
-.linkish {
-  border: none;
-  background: none;
+.trade-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(10, 8, 6, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.trade-confirm-dialog {
+  max-width: 26rem;
+  width: 100%;
+  padding: 1.25rem 1.35rem;
+  border-radius: 6px;
+  border: 1px solid #5c4a36;
+  background: #1e1a14;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+}
+
+.trade-confirm-dialog__title {
+  margin: 0 0 0.65rem;
+  font-size: 1.15rem;
+  color: #e8dcc8;
+}
+
+.trade-confirm-dialog__body {
+  margin: 0 0 1.1rem;
+  font-size: 0.95rem;
+  color: #d8ccb8;
+  line-height: 1.5;
+}
+
+.trade-confirm-dialog__total {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-weight: 600;
   color: #c9a66b;
-  text-decoration: underline;
-  padding: 0;
+}
+
+.trade-confirm-dialog__actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Qty preset buttons */
+.qty-presets {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.qty-preset {
+  padding: 0.28rem 0.55rem;
+  font-size: 0.82rem;
+  min-width: 36px;
+  background: #1c1810;
+  border-color: #3a3026;
+  color: #b8a892;
+}
+
+.qty-preset--active {
+  border-color: #c9a66b;
+  background: #2e2818;
+  color: #c9a66b;
+}
+
+/* Capacity bar (Caravan screen) */
+.capacity-bar-wrap {
+  margin-bottom: 1rem;
+}
+
+.capacity-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.3rem;
+}
+
+.capacity-bar-label {
+  font-size: 0.82rem;
+  color: #8b7c6b;
+}
+
+.capacity-bar-label--right {
+  font-size: 0.88rem;
+}
+
+.capacity-bar {
+  height: 7px;
+  background: #1e1a14;
+  border: 1px solid #2a2218;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.capacity-bar__fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease, background 0.3s ease;
+}
+
+/* Hire upkeep note */
+.hire-row__upkeep {
+  flex: 1;
+  min-width: 0;
 }

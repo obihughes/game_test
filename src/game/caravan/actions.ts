@@ -61,6 +61,22 @@ export function hireRole(state: GameState, role: HireRole): GameResult {
   }
 }
 
+export function dismissHire(state: GameState, role: HireRole): GameResult {
+  if (state.caravan.hires[role]! <= 0) {
+    return { ok: false, reason: 'Nobody to dismiss.' }
+  }
+  return {
+    ok: true,
+    state: {
+      ...state,
+      caravan: {
+        ...state.caravan,
+        hires: { ...state.caravan.hires, [role]: 0 },
+      },
+    },
+  }
+}
+
 export function dailyHireCost(state: GameState): number {
   let c = 0
   if (state.caravan.hires.guard! > 0) c += 1

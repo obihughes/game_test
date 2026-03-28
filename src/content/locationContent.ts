@@ -8,6 +8,10 @@ export const LOCATION_STORIES: Record<TownId, string> = {
     "Mirecross is less a town than a stubborn idea at a swamp crossroads. Raised plank paths keep boots above the sucking mud, while pole-lamps bob in the fog like will-o'-wisps wearing ledgers. Caravans pause to argue tolls, swap rumors of safer routes, and pretend the reed-shadows are not listening.",
   riversend:
     'Riversend clings to the last wide bend before the water spills toward the sea. Cranes creak, gulls argue over scraps, and the tide rearranges the docks faster than the harbormaster can shout. Anything that travels by river or road ends up counted, taxed, or toasted in a waterfront tavern here.',
+  crownpost:
+    'Crownpost grew where the old toll ring met a crown warehouse of stamped resin and sealed wax. Clerks argue in three languages; carts queue under banners that never quite match the season. Amber and duty receipts stack higher than common sense.',
+  fenward:
+    'Fenward is a line of stilt sheds above sucking mud, where spice crates steam in the cold and pole-lamps throw long shadows. What the fen does not swallow, the night market sells twice — once before midnight and once after.',
 }
 
 /** Layered gradients for the market panel; keyed by town id. */
@@ -26,6 +30,16 @@ const LOCATION_PANEL_BACKGROUNDS: Record<string, string> = {
     'radial-gradient(ellipse 110% 90% at 55% 85%, rgba(38, 78, 96, 0.45) 0%, transparent 55%)',
     'radial-gradient(circle at 10% 15%, rgba(180, 196, 210, 0.08) 0%, transparent 35%)',
     'linear-gradient(195deg, #0a1014 0%, #060a0f 55%, #0b1418 100%)',
+  ].join(', '),
+  crownpost: [
+    'radial-gradient(ellipse 100% 80% at 50% 20%, rgba(180, 140, 80, 0.2) 0%, transparent 50%)',
+    'radial-gradient(circle at 80% 80%, rgba(100, 80, 50, 0.15) 0%, transparent 40%)',
+    'linear-gradient(170deg, #16120e 0%, #0e0c0a 55%, #121008 100%)',
+  ].join(', '),
+  fenward: [
+    'radial-gradient(ellipse 90% 70% at 30% 100%, rgba(45, 75, 55, 0.35) 0%, transparent 50%)',
+    'radial-gradient(circle at 70% 10%, rgba(60, 90, 70, 0.12) 0%, transparent 35%)',
+    'linear-gradient(185deg, #0c100e 0%, #081210 50%, #060d0c 100%)',
   ].join(', '),
 }
 

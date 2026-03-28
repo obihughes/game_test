@@ -18,6 +18,12 @@ export interface GameState {
   /** Which stall you are trading at; must match a merchant in `location`. */
   activeMerchantId: MerchantId
   inventory: Record<GoodId, number>
+  /** Total gold paid for units still held (per good); average buy = value / inventory count. */
+  inventoryCostBasis: Partial<Record<GoodId, number>>
+  /** Lifetime gold spent on purchases (this save). */
+  tradeGoldSpent: number
+  /** Lifetime gold received from sales (this save). */
+  tradeGoldEarned: number
   caravan: CaravanState
   questFlags: Record<string, boolean>
   activeQuestId: string | null

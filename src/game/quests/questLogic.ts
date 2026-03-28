@@ -30,9 +30,34 @@ export function applyQuestProgress(state: GameState): GameState {
     if (upgraded) {
       s = withQuest(s, {
         questFlags: { ...s.questFlags, intro_caravan: true },
-        activeQuestId: null,
+        activeQuestId: 'post_wealth',
       })
     }
+  }
+
+  if (s.activeQuestId === 'post_wealth' && s.gold >= 1000) {
+    s = withQuest(s, {
+      questFlags: { ...s.questFlags, post_wealth: true },
+      activeQuestId: 'post_delivery',
+    })
+  }
+
+  if (
+    s.activeQuestId === 'post_delivery' &&
+    s.location === 'riversend' &&
+    (s.inventory.silk ?? 0) >= 5
+  ) {
+    s = withQuest(s, {
+      questFlags: { ...s.questFlags, post_delivery: true },
+      activeQuestId: 'post_caravan',
+    })
+  }
+
+  if (s.activeQuestId === 'post_caravan' && s.caravan.cartTier >= 3) {
+    s = withQuest(s, {
+      questFlags: { ...s.questFlags, post_caravan: true },
+      activeQuestId: null,
+    })
   }
 
   return s

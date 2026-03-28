@@ -1,19 +1,29 @@
+.mapWrap {
+  position: relative;
+}
+
 .svg {
   width: 100%;
-  max-width: 520px;
+  max-width: 560px;
   height: auto;
   display: block;
   border-radius: 10px;
   border: 1px solid #3a3026;
-  background: radial-gradient(circle at 30% 20%, #2a2218 0%, #14100c 70%);
 }
 
 .road {
-  stroke: var(--map-road, #5c4a36);
-  stroke-width: 4;
+  stroke: var(--map-road, #6b5540);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-dasharray: 4 2;
+  fill: none;
+}
+
+.roadHighlight {
+  stroke: #c9a66b;
+  stroke-width: 2.5;
   stroke-linecap: round;
   fill: none;
-  opacity: 0.85;
 }
 
 .townHit {
@@ -21,17 +31,173 @@
 }
 
 .townHit:hover {
-  filter: brightness(1.12);
+  filter: brightness(1.35);
+}
+
+@keyframes townPulse {
+  0%   { filter: drop-shadow(0 0 4px rgba(201, 166, 107, 0.85)) drop-shadow(0 0 10px rgba(201, 166, 107, 0.35)); }
+  50%  { filter: drop-shadow(0 0 8px rgba(201, 166, 107, 1.0))  drop-shadow(0 0 18px rgba(201, 166, 107, 0.6)); }
+  100% { filter: drop-shadow(0 0 4px rgba(201, 166, 107, 0.85)) drop-shadow(0 0 10px rgba(201, 166, 107, 0.35)); }
 }
 
 .townCurrentWrap {
-  filter: drop-shadow(0 0 9px rgba(201, 166, 107, 0.7));
+  animation: townPulse 2.2s ease-in-out infinite;
 }
 
 .label {
   font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: 11px;
+  font-size: 5.5px;
   fill: var(--map-label, #f2e6d4);
   text-anchor: middle;
   pointer-events: none;
+  letter-spacing: 0.015em;
+}
+
+.routeLabel {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 3.8px;
+  fill: #7a6a58;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* Info panel sits below the SVG */
+.infoPanel {
+  margin-top: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #3a3026;
+  background: linear-gradient(135deg, #1a1612 0%, #141210 100%);
+  min-height: 3.25rem;
+  transition: border-color 0.2s ease;
+}
+
+.infoPanelHeader {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  margin-bottom: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.infoPanelName {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #e8dcc8;
+}
+
+.infoPanelMeta {
+  font-size: 0.85rem;
+  color: #c9a66b;
+  font-weight: 500;
+}
+
+.infoPanelStory {
+  margin: 0.2rem 0 0.45rem;
+  font-size: 0.875rem;
+  color: #9a8c7e;
+  line-height: 1.4;
+}
+
+.infoPanelCargo {
+  margin-top: 0.45rem;
+}
+
+.infoPanelCargoLabel {
+  color: #b8c8a8;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.infoPanelCargoList {
+  margin: 0.2rem 0 0;
+  padding-left: 1rem;
+  color: #9aba8a;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.travelBtn {
+  margin-top: 0.6rem;
+  background: #3a4a2a;
+  border-color: #5a7a4a;
+  color: #b0e070;
+  font-size: 0.9rem;
+  padding: 0.42rem 1rem;
+}
+
+.travelBtn:hover:not(:disabled) {
+  background: #4a5a3a;
+  border-color: #7a9a6a;
+}
+
+.infoPanelHint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #5a4e44;
+  font-style: italic;
+  text-align: center;
+  line-height: 2.2;
+}
+
+/* Destinations quick-travel list */
+.destinationList {
+  margin-top: 1rem;
+}
+
+.destinationListTitle {
+  margin: 0 0 0.45rem;
+  font-size: 0.8rem;
+  color: #6b5c4e;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.destinationItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.destinationItem {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid #2a2218;
+  border-radius: 6px;
+  background: rgba(20, 16, 12, 0.5);
+  transition: border-color 0.12s ease;
+}
+
+.destinationItem:hover {
+  border-color: #4a3a2a;
+}
+
+.destinationName {
+  flex: 1;
+  font-weight: 500;
+  color: #e8dcc8;
+  font-size: 0.95rem;
+}
+
+.destinationMeta {
+  font-size: 0.82rem;
+  color: #7a6a58;
+}
+
+.destinationBtn {
+  font-size: 0.82rem;
+  padding: 0.28rem 0.65rem;
+  background: #2a2218;
+  border-color: #4a3a28;
+}
+
+.destinationBtn:hover:not(:disabled) {
+  background: #3a3228;
+  border-color: #6a5a40;
 }

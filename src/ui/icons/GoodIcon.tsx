@@ -133,6 +133,22 @@ const ICON_SVG_DATA: Record<GoodId, string> = {
       <line x1="11" y1="10" x2="12" y2="13" stroke="#8b7355" stroke-width="0.8"/>
     </svg>
   `,
+  crown_amber: `
+    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="8" cy="9" rx="5" ry="4" fill="#d4a020" stroke="#8b6914" stroke-width="1"/>
+      <ellipse cx="8" cy="8" rx="3" ry="2.5" fill="#f0c040" opacity="0.85"/>
+      <circle cx="6" cy="7" r="0.8" fill="#fff8e0" opacity="0.6"/>
+    </svg>
+  `,
+  fen_spice: `
+    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="4" width="10" height="9" fill="#6a4a32" stroke="#4a3020" stroke-width="1" rx="1"/>
+      <rect x="4" y="5" width="8" height="6" fill="#8b5a3a"/>
+      <circle cx="6" cy="7" r="0.8" fill="#c04040"/>
+      <circle cx="9" cy="8" r="0.7" fill="#d08040"/>
+      <circle cx="7" cy="9" r="0.6" fill="#e0c060"/>
+    </svg>
+  `,
 }
 
 export function GoodIcon({ goodId, size = 24, className = '' }: GoodIconProps) {

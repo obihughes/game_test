@@ -3,6 +3,7 @@ export {
   applyDailyUpkeep,
   buyHorse,
   dailyHireCost,
+  dismissHire,
   hireRole,
   upgradeCart,
 } from './actions.ts'

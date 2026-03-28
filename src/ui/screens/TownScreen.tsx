@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react'
-import { GOODS, GOOD_IDS } from '@/game/economy/index.ts'
-import { merchantDef, merchantsForTown, priceRowFor } from '@/game/economy/merchants.ts'
+import { useEffect, useId, useState } from 'react'
+import { averageInventoryBuyPrice, GOODS, GOOD_IDS } from '@/game/economy/index.ts'
+import {
+  effectivePriceRow,
+  isLocalDeal,
+  merchantDef,
+  merchantsForTown,
+} from '@/game/economy/merchants.ts'
 import { getDialog } from '@/content/dialog/dialog.ts'
 import { getLocationStory } from '@/content/locationContent.ts'
 import { spareCapacity } from '@/game/caravan/capacity.ts'
@@ -18,6 +23,18 @@ export function TownScreen() {
   const lastError = useGameStore((s) => s.lastError)
   const clearError = useGameStore((s) => s.clearError)
   const [qty, setQty] = useState(1)
+  const confirmTitleId = useId()
+  const confirmBodyId = useId()
+  const [pendingTrade, setPendingTrade] = useState<
+    | null
+    | {
+        kind: 'buy' | 'sell'
+        goodId: GoodId
+        qty: number
+        unitGold: number
+        totalGold: number
+      }
+  >(null)
 
   const merchants = merchantsForTown(game.location)
   const active = merchantDef(game.location, game.activeMerchantId) ?? merchants[0]
@@ -30,6 +47,13 @@ export function TownScreen() {
     }
   }, [game.location, game.activeMerchantId, setActiveMerchant])
 
+  useEffect(() => {
+    if (!pendingTrade) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setPendingTrade(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [pendingTrade])
+
   const spare = spareCapacity(game)
   const townName = TOWNS[game.location]?.name ?? game.location
   const story = getLocationStory(game.location)
@@ -38,7 +62,7 @@ export function TownScreen() {
     ? (Object.keys(active.catalog) as GoodId[])
         .sort((a, b) => GOOD_IDS.indexOf(a) - GOOD_IDS.indexOf(b))
         .map((id) => {
-          const row = active.catalog[id]
+          const row = effectivePriceRow(game.location, active.id, id, game.day)
           return row ? { id, row } : null
         })
         .filter(Boolean) as { id: GoodId; row: { buy: number; sell: number } }[]
@@ -59,9 +83,6 @@ export function TownScreen() {
 
         <div className="market-screen__stats">
           <span>
-            Gold: <strong>{game.gold}</strong>
-          </span>
-          <span>
             Cargo: <strong>{spare}</strong> spare
           </span>
         </div>
@@ -77,18 +98,25 @@ export function TownScreen() {
       </div>
 
       <div className="market-screen__merchant-select">
-        <label className="merchant-select__label">Trading with:</label>
-        <select
-          className="merchant-select__dropdown"
-          value={active?.id ?? ''}
-          onChange={(e) => setActiveMerchant(e.target.value)}
-        >
-          {merchants.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+        <div className="merchant-select__row">
+          <label className="merchant-select__label">Trading with:</label>
+          <select
+            className="merchant-select__dropdown"
+            value={active?.id ?? ''}
+            onChange={(e) => setActiveMerchant(e.target.value)}
+          >
+            {merchants.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.roleLabel} — {m.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {active ? (
+          <p className="merchant-select__hint muted small">
+            <strong>{active.roleLabel}</strong> — {active.tagline}
+          </p>
+        ) : null}
       </div>
 
       <div className="market-screen__qty-control">
@@ -100,6 +128,18 @@ export function TownScreen() {
           value={qty}
           onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
         />
+        <div className="qty-presets" aria-label="Quick quantity presets">
+          {([1, 5, 10, 25] as const).map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={qty === n ? 'qty-preset qty-preset--active' : 'qty-preset'}
+              onClick={() => setQty(n)}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="market-screen__content">
@@ -121,6 +161,11 @@ export function TownScreen() {
                       </div>
                     </div>
                     <div className="trade-row__prices">
+                      {active && isLocalDeal(game.location, active.id, id, game.day) ? (
+                        <span className="trade-row__badge" title="Below typical market buy price today">
+                          Local deal
+                        </span>
+                      ) : null}
                       <span className="trade-row__price">
                         Buy: <strong>{row.buy}</strong>
                       </span>
@@ -128,7 +173,19 @@ export function TownScreen() {
                         Sell: <strong>{row.sell}</strong>
                       </span>
                     </div>
-                    <button type="button" className="trade-row__btn trade-row__btn--buy" onClick={() => buy(id as GoodId, qty)}>
+                    <button
+                      type="button"
+                      className="trade-row__btn trade-row__btn--buy"
+                      onClick={() =>
+                        setPendingTrade({
+                          kind: 'buy',
+                          goodId: id,
+                          qty,
+                          unitGold: row.buy,
+                          totalGold: row.buy * qty,
+                        })
+                      }
+                    >
                       Buy
                     </button>
                   </li>
@@ -147,8 +204,11 @@ export function TownScreen() {
               {cargoGoods.map((id) => {
                 const g = GOODS[id]!
                 const count = game.inventory[id] ?? 0
-                const row = active ? priceRowFor(game.location, active.id, id) : undefined
+                const row = active ? effectivePriceRow(game.location, active.id, id, game.day) : undefined
                 const w = g.weightPerUnit * count
+                const avgBuy = averageInventoryBuyPrice(game, id)
+                const sellDelta =
+                  row && avgBuy !== null ? Math.round((row.sell - avgBuy) * 10) / 10 : null
                 return (
                   <li key={id} className="trade-row">
                     <div className="trade-row__item">
@@ -156,6 +216,13 @@ export function TownScreen() {
                       <div className="trade-row__name">
                         <strong>{g.name}</strong>
                         <span className="trade-row__flavor muted small">×{count} · {w} wt</span>
+                        {avgBuy !== null ? (
+                          <span className="trade-row__flavor trade-row__avg-buy muted small">
+                            Avg buy: <strong>{avgBuy === Math.floor(avgBuy) ? avgBuy : avgBuy.toFixed(1)}</strong>
+                          </span>
+                        ) : (
+                          <span className="trade-row__flavor muted small">Avg buy: —</span>
+                        )}
                       </div>
                     </div>
                     {row ? (
@@ -164,10 +231,52 @@ export function TownScreen() {
                           <span className="trade-row__price">
                             Sell: <strong>{row.sell}</strong>
                           </span>
+                          {sellDelta !== null ? (
+                            <span
+                              className={
+                                sellDelta >= 0
+                                  ? 'trade-row__vs-avg trade-row__vs-avg--up'
+                                  : 'trade-row__vs-avg trade-row__vs-avg--down'
+                              }
+                            >
+                              {sellDelta >= 0 ? '+' : ''}
+                              {sellDelta === Math.floor(sellDelta) ? sellDelta : sellDelta.toFixed(1)} vs avg
+                            </span>
+                          ) : null}
                         </div>
-                        <button type="button" className="trade-row__btn trade-row__btn--sell" onClick={() => sell(id as GoodId, qty)}>
-                          Sell
-                        </button>
+                        <div className="trade-row__sell-actions">
+                          <button
+                            type="button"
+                            className="trade-row__btn trade-row__btn--sell"
+                            onClick={() =>
+                              setPendingTrade({
+                                kind: 'sell',
+                                goodId: id,
+                                qty,
+                                unitGold: row.sell,
+                                totalGold: row.sell * qty,
+                              })
+                            }
+                          >
+                            Sell
+                          </button>
+                          <button
+                            type="button"
+                            className="trade-row__btn trade-row__btn--sell-all ghost small"
+                            title={`Sell all ${count} at ${row.sell} each`}
+                            onClick={() =>
+                              setPendingTrade({
+                                kind: 'sell',
+                                goodId: id,
+                                qty: count,
+                                unitGold: row.sell,
+                                totalGold: row.sell * count,
+                              })
+                            }
+                          >
+                            Sell all
+                          </button>
+                        </div>
                       </>
                     ) : (
                       <>
@@ -184,6 +293,61 @@ export function TownScreen() {
           )}
         </div>
       </div>
+
+      {pendingTrade ? (
+        <div
+          className="trade-confirm-backdrop"
+          role="presentation"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setPendingTrade(null)
+          }}
+        >
+          <div
+            className="trade-confirm-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={confirmTitleId}
+            aria-describedby={confirmBodyId}
+          >
+            <h3 id={confirmTitleId} className="trade-confirm-dialog__title">
+              {pendingTrade.kind === 'buy' ? 'Confirm purchase' : 'Confirm sale'}
+            </h3>
+            <p id={confirmBodyId} className="trade-confirm-dialog__body">
+              {pendingTrade.kind === 'buy' ? (
+                <>
+                  Buy <strong>{pendingTrade.qty}</strong> × {GOODS[pendingTrade.goodId]!.name} at{' '}
+                  <strong>{pendingTrade.unitGold}</strong> each?
+                  <br />
+                  <span className="trade-confirm-dialog__total">Total: {pendingTrade.totalGold} gold</span>
+                </>
+              ) : (
+                <>
+                  Sell <strong>{pendingTrade.qty}</strong> × {GOODS[pendingTrade.goodId]!.name} at{' '}
+                  <strong>{pendingTrade.unitGold}</strong> each?
+                  <br />
+                  <span className="trade-confirm-dialog__total">You receive: {pendingTrade.totalGold} gold</span>
+                </>
+              )}
+            </p>
+            <div className="trade-confirm-dialog__actions">
+              <button type="button" className="ghost" onClick={() => setPendingTrade(null)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const p = pendingTrade
+                  setPendingTrade(null)
+                  if (p.kind === 'buy') buy(p.goodId, p.qty)
+                  else sell(p.goodId, p.qty)
+                }}
+              >
+                {pendingTrade.kind === 'buy' ? 'Buy' : 'Sell'}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </section>
   )
 }

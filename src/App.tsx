@@ -11,7 +11,6 @@ type Tab = 'town' | 'map' | 'caravan'
 
 export function App() {
   const game = useGameStore((s) => s.game)
-  const travelTo = useGameStore((s) => s.travelTo)
   const reset = useGameStore((s) => s.reset)
   const [tab, setTab] = useState<Tab>('town')
 
@@ -19,6 +18,23 @@ export function App() {
 
   return (
     <div className="app-shell">
+      <div className="gold-hud" title="Your gold and trading net" aria-live="polite">
+        <span className="gold-hud__icon" aria-hidden>
+          🪙
+        </span>
+        <span className="gold-hud__amount">{game.gold}</span>
+        <span className="gold-hud__trade" title="Sales − purchases (lifetime this save)">
+          Net trade:{' '}
+          <strong
+            className={
+              game.tradeGoldEarned - game.tradeGoldSpent >= 0 ? 'gold-hud__net--pos' : 'gold-hud__net--neg'
+            }
+          >
+            {game.tradeGoldEarned - game.tradeGoldSpent >= 0 ? '+' : ''}
+            {game.tradeGoldEarned - game.tradeGoldSpent}
+          </strong>
+        </span>
+      </div>
       <header className="top-bar">
         <div>
           <h1>Caravan Merchant</h1>
@@ -30,7 +46,7 @@ export function App() {
               title={townName}
             />
             <span>
-              Day {game.day} · {townName} · {game.gold} gold
+              Day {game.day} · {townName}
             </span>
           </p>
         </div>

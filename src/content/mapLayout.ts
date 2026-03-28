@@ -9,4 +9,6 @@ export const MAP_POSITIONS: Record<TownId, MapNodePosition> = {
   ashenford: { x: 18, y: 62 },
   mirecross: { x: 48, y: 38 },
   riversend: { x: 78, y: 68 },
+  crownpost: { x: 32, y: 55 },
+  fenward: { x: 58, y: 18 },
 }
