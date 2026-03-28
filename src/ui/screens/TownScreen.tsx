@@ -137,23 +137,17 @@ export function TownScreen() {
   const buyEntries = useMemo<BuyEntry[]>(
     () =>
       GOOD_IDS.map((id) => {
-        const offers = merchants
-          .map((merchant) => {
-            const row = effectivePriceRow(game.location, merchant.id, id, game.day)
-            return row ? { merchant, row } : null
-          })
-          .filter((offer): offer is TradeOffer => offer !== null)
-          .sort((a, b) => a.row.buy - b.row.buy)
-        if (!offers.length) return null
-        const offer = offers[0]!
+        const row = townMarketPriceRow(game.location, id, game.day)
+        if (!row || row.buy <= 0) return null
+        const offer = { row }
         return {
           id,
           offer,
-          offers,
+          offers: [offer],
           isPrimary: primaryGoods.has(id),
-          trend: getPriceTrendDirection(game.location, offer.merchant.id, id, game.day),
+          trend: getPriceTrendDirection(game.location, id, game.day),
           seasonLabel: getSeasonModifierLabel(id, game.day),
-          sparklineData: getPriceTrend(game.location, offer.merchant.id, id, game.day, 7).map((p) => p.buy),
+          sparklineData: getPriceTrend(game.location, id, game.day, 7).map((p) => p.buy),
         }
       })
         .filter((entry): entry is BuyEntry => entry !== null)
@@ -163,26 +157,14 @@ export function TownScreen() {
             a.offer.row.buy - b.offer.row.buy ||
             GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
         ),
-    [game.location, game.day, merchants, primaryGoods],
+    [game.location, game.day, primaryGoods],
   )
 
   const sellEntries = useMemo<SellEntry[]>(
     () =>
       cargoGoods.map((id) => {
-        const offers = merchants
-          .map((merchant) => {
-            const row = effectivePriceRow(game.location, merchant.id, id, game.day)
-            return row ? { merchant, row } : null
-          })
-          .filter((offer): offer is TradeOffer => offer !== null)
-          .sort((a, b) => b.row.sell - a.row.sell)
         const bestOffer = bestSellOfferAtTown(game.location, id, game.day)
-        const fallbackMerchant =
-          bestOffer?.isFallback ? merchants.find((merchant) => merchant.id === bestOffer.merchantId) ?? null : null
-        const offer =
-          bestOffer && fallbackMerchant
-            ? { merchant: fallbackMerchant, row: bestOffer.row }
-            : offers[0] ?? null
+        const offer = bestOffer ? { row: bestOffer.row } : null
         const count = game.inventory[id] ?? 0
         const weight = GOODS[id]!.weightPerUnit * count
         const avgBuy = averageInventoryBuyPrice(game, id)
@@ -192,20 +174,17 @@ export function TownScreen() {
           id,
           count,
           offer,
-          offers,
+          offers: offer ? [offer] : [],
           avgBuy,
           sellDelta,
           isWanted: wantedGoods.has(id),
           isFallback: bestOffer?.isFallback ?? false,
           demandReason: getTownDemandReason(game.location, id),
           weight,
-          trend:
-            offer && !(bestOffer?.isFallback ?? false)
-              ? getPriceTrendDirection(game.location, offer.merchant.id, id, game.day)
-              : 'flat',
+          trend: offer && !(bestOffer?.isFallback ?? false) ? getPriceTrendDirection(game.location, id, game.day) : 'flat',
           seasonLabel: getSeasonModifierLabel(id, game.day),
           sparklineData: offer && !(bestOffer?.isFallback ?? false)
-            ? getPriceTrend(game.location, offer.merchant.id, id, game.day, 7).map((p) => p.sell)
+            ? getPriceTrend(game.location, id, game.day, 7).map((p) => p.sell)
             : [],
         }
       }).sort(
@@ -214,7 +193,7 @@ export function TownScreen() {
           (b.offer?.row.sell ?? 0) - (a.offer?.row.sell ?? 0) ||
           GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
       ),
-    [cargoGoods, game, merchants, wantedGoods],
+    [cargoGoods, game, wantedGoods],
   )
 
   function getWhQty(key: string, max: number): number {
@@ -229,7 +208,7 @@ export function TownScreen() {
     return cart
       .filter((i) => i.kind === 'buy')
       .reduce((sum, i) => {
-        const row = effectivePriceRow(game.location, i.merchantId, i.goodId, game.day)
+        const row = townMarketPriceRow(game.location, i.goodId, game.day)
         return sum + (row ? row.buy * i.qty : 0)
       }, 0)
   }
@@ -238,7 +217,7 @@ export function TownScreen() {
     return cart
       .filter((i) => i.kind === 'sell')
       .reduce((sum, i) => {
-        const row = effectiveSellPriceRow(game.location, i.merchantId, i.goodId, game.day)
+        const row = townMarketPriceRow(game.location, i.goodId, game.day)
         return sum + (row ? row.sell * i.qty : 0)
       }, 0)
   }
@@ -272,10 +251,7 @@ export function TownScreen() {
 
   function setCartItem(item: CartItem) {
     setCart((prev) => {
-      const existing = prev.findIndex(
-        (c) =>
-          c.goodId === item.goodId && c.kind === item.kind && c.merchantId === item.merchantId,
-      )
+      const existing = prev.findIndex((c) => c.goodId === item.goodId && c.kind === item.kind)
       if (existing >= 0) {
         const updated = [...prev]
         updated[existing] = item
@@ -286,30 +262,20 @@ export function TownScreen() {
     setShowCartDetails(true)
   }
 
-  function removeFromCart(goodId: GoodId, kind: TradeKind, merchantId: MerchantId) {
-    setCart((prev) =>
-      prev.filter((c) => !(c.goodId === goodId && c.kind === kind && c.merchantId === merchantId)),
-    )
+  function removeFromCart(goodId: GoodId, kind: TradeKind) {
+    setCart((prev) => prev.filter((c) => !(c.goodId === goodId && c.kind === kind)))
   }
 
   function cartContextExcluding(target: {
     goodId: GoodId
     kind: TradeKind
-    merchantId: MerchantId
   }): { buy: number; sell: number; weight: number } {
     return cart.reduce(
       (acc, item) => {
-        if (
-          item.goodId === target.goodId &&
-          item.kind === target.kind &&
-          item.merchantId === target.merchantId
-        ) {
+        if (item.goodId === target.goodId && item.kind === target.kind) {
           return acc
         }
-        const row =
-          item.kind === 'buy'
-            ? effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
-            : effectiveSellPriceRow(game.location, item.merchantId, item.goodId, game.day)
+        const row = townMarketPriceRow(game.location, item.goodId, game.day)
         if (!row) return acc
         const unitPrice = item.kind === 'buy' ? row.buy : row.sell
         const weight = (GOODS[item.goodId]?.weightPerUnit ?? 0) * item.qty
@@ -322,10 +288,10 @@ export function TownScreen() {
     )
   }
 
-  function maxBuyQtyForOffer(goodId: GoodId, merchantId: MerchantId, unitPrice: number): number {
+  function maxBuyQtyForOffer(goodId: GoodId, unitPrice: number): number {
     const good = GOODS[goodId]
     if (!good) return 0
-    const otherCart = cartContextExcluding({ goodId, kind: 'buy', merchantId })
+    const otherCart = cartContextExcluding({ goodId, kind: 'buy' })
     const goldAvailable = game.gold - otherCart.buy + otherCart.sell
     const weightAvailable = maxWeight - (currentWeight + otherCart.weight)
     const byGold = unitPrice > 0 ? Math.floor(Math.max(0, goldAvailable) / unitPrice) : 999
@@ -339,24 +305,23 @@ export function TownScreen() {
   function updateCartQty(
     goodId: GoodId,
     kind: TradeKind,
-    merchantId: MerchantId,
     newQty: number,
   ) {
     if (newQty <= 0) {
-      removeFromCart(goodId, kind, merchantId)
+      removeFromCart(goodId, kind)
       return
     }
-    const row = effectivePriceRow(game.location, merchantId, goodId, game.day)
+    const row = townMarketPriceRow(game.location, goodId, game.day)
     let clampedQty = newQty
-    if (kind === 'buy' && row) {
-      clampedQty = Math.min(newQty, maxBuyQtyForOffer(goodId, merchantId, row.buy))
+    if (kind === 'buy' && row && row.buy > 0) {
+      clampedQty = Math.min(newQty, maxBuyQtyForOffer(goodId, row.buy))
     }
     if (kind === 'sell') {
       clampedQty = Math.min(newQty, game.inventory[goodId] ?? 0)
     }
     setCart((prev) =>
       prev.map((c) =>
-        c.goodId === goodId && c.kind === kind && c.merchantId === merchantId
+        c.goodId === goodId && c.kind === kind
           ? { ...c, qty: clampedQty }
           : c,
       ),
@@ -367,19 +332,17 @@ export function TownScreen() {
     kind: TradeKind,
     goodId: GoodId,
     qty: number,
-    merchantId: MerchantId,
     unitGold: number,
   ) {
     if (qty <= 1) {
-      if (kind === 'buy') buyAtMerchant(goodId, 1, merchantId)
-      else sellToMerchant(goodId, 1, merchantId)
+      if (kind === 'buy') buy(goodId, 1)
+      else sell(goodId, 1)
       return
     }
     setPendingTrade({
       kind,
       goodId,
       qty,
-      merchantId,
       unitGold,
       totalGold: unitGold * qty,
     })
@@ -569,11 +532,8 @@ export function TownScreen() {
                   {buyEntries.map(({ id, offer, isPrimary, trend, seasonLabel, sparklineData }) => {
                     const good = GOODS[id]!
                     const key = rowKey('buy', id)
-                    const inCart = cart.find(
-                      (item) =>
-                        item.kind === 'buy' && item.goodId === id && item.merchantId === offer.merchant.id,
-                    )
-                    const maxQty = maxBuyQtyForOffer(id, offer.merchant.id, offer.row.buy)
+                    const inCart = cart.find((item) => item.kind === 'buy' && item.goodId === id)
+                    const maxQty = maxBuyQtyForOffer(id, offer.row.buy)
                     const qtyLimit = Math.max(maxQty, inCart?.qty ?? 1, 1)
                     const qty = getTradeQty(key, qtyLimit, inCart?.qty ?? 1)
                     const sparklineKey = `buy-${id}`
@@ -611,7 +571,7 @@ export function TownScreen() {
                                 Local supply
                               </span>
                             ) : null}
-                            {isLocalDeal(game.location, offer.merchant.id, id, game.day) ? (
+                            {isLocalDeal(game.location, id, game.day) ? (
                               <span className="trade-row__badge" title="Below typical market buy price today">
                                 Deal
                               </span>
@@ -658,9 +618,7 @@ export function TownScreen() {
                             type="button"
                             className="trade-row__btn trade-row__btn--buy"
                             disabled={maxQty <= 0}
-                            onClick={() =>
-                              requestTrade('buy', id, qty, offer.merchant.id, offer.row.buy)
-                            }
+                            onClick={() => requestTrade('buy', id, qty, offer.row.buy)}
                           >
                             {qty === 1 ? 'Buy now' : `Buy ×${qty}`}
                           </button>
@@ -673,7 +631,6 @@ export function TownScreen() {
                                 goodId: id,
                                 qty,
                                 kind: 'buy',
-                                merchantId: offer.merchant.id,
                               })
                             }
                           >
@@ -720,12 +677,7 @@ export function TownScreen() {
                     }) => {
                       const good = GOODS[id]!
                       const key = rowKey('sell', id)
-                      const inCart = offer
-                        ? cart.find(
-                            (item) =>
-                              item.kind === 'sell' && item.goodId === id && item.merchantId === offer.merchant.id,
-                          )
-                        : undefined
+                      const inCart = offer ? cart.find((item) => item.kind === 'sell' && item.goodId === id) : undefined
                       const qty = getTradeQty(key, Math.max(count, 1), inCart?.qty ?? 1)
                       const sparklineKey = `sell-${id}`
                       const isExpanded = expandedRows[key]
@@ -831,7 +783,7 @@ export function TownScreen() {
                               disabled={!offer}
                               onClick={() => {
                                 if (!offer) return
-                                requestTrade('sell', id, qty, offer.merchant.id, offer.row.sell)
+                                requestTrade('sell', id, qty, offer.row.sell)
                               }}
                             >
                               {qty === 1 ? 'Sell now' : `Sell ×${qty}`}
@@ -846,7 +798,6 @@ export function TownScreen() {
                                   goodId: id,
                                   qty,
                                   kind: 'sell',
-                                  merchantId: offer.merchant.id,
                                 })
                               }}
                             >
@@ -973,15 +924,12 @@ export function TownScreen() {
                 <ul className="cart-list">
                   {cart.map((item) => {
                     const good = GOODS[item.goodId]
-                    const row =
-                      item.kind === 'buy'
-                        ? effectivePriceRow(game.location, item.merchantId, item.goodId, game.day)
-                        : effectiveSellPriceRow(game.location, item.merchantId, item.goodId, game.day)
+                    const row = townMarketPriceRow(game.location, item.goodId, game.day)
                     const unitPrice = row ? (item.kind === 'buy' ? row.buy : row.sell) : 0
                     const total = unitPrice * item.qty
                     const weight = good ? good.weightPerUnit * item.qty : 0
                     return (
-                      <li key={`${item.kind}-${item.goodId}-${item.merchantId}`} className="cart-row">
+                      <li key={`${item.kind}-${item.goodId}`} className="cart-row">
                         <GoodIcon goodId={item.goodId} size={18} className="cart-row__icon" />
                         <span className={`cart-row__kind cart-row__kind--${item.kind}`}>
                           {item.kind === 'buy' ? 'Buy' : 'Sell'}
@@ -993,9 +941,7 @@ export function TownScreen() {
                           <button
                             type="button"
                             className="cart-row__qty-btn"
-                            onClick={() =>
-                              updateCartQty(item.goodId, item.kind, item.merchantId, item.qty - 1)
-                            }
+                            onClick={() => updateCartQty(item.goodId, item.kind, item.qty - 1)}
                           >
                             −
                           </button>
@@ -1003,9 +949,7 @@ export function TownScreen() {
                           <button
                             type="button"
                             className="cart-row__qty-btn"
-                            onClick={() =>
-                              updateCartQty(item.goodId, item.kind, item.merchantId, item.qty + 1)
-                            }
+                            onClick={() => updateCartQty(item.goodId, item.kind, item.qty + 1)}
                           >
                             +
                           </button>
@@ -1017,7 +961,7 @@ export function TownScreen() {
                         <button
                           type="button"
                           className="cart-row__remove ghost small"
-                          onClick={() => removeFromCart(item.goodId, item.kind, item.merchantId)}
+                          onClick={() => removeFromCart(item.goodId, item.kind)}
                           aria-label="Remove from cart"
                         >
                           ✕
@@ -1092,8 +1036,8 @@ export function TownScreen() {
                 onClick={() => {
                   const p = pendingTrade
                   setPendingTrade(null)
-                  if (p.kind === 'buy') buyAtMerchant(p.goodId, p.qty, p.merchantId)
-                  else sellToMerchant(p.goodId, p.qty, p.merchantId)
+                  if (p.kind === 'buy') buy(p.goodId, p.qty)
+                  else sell(p.goodId, p.qty)
                 }}
               >
                 {pendingTrade.kind === 'buy' ? 'Buy' : 'Sell'}
