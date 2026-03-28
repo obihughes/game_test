@@ -28,7 +28,10 @@ export function getSeasonLabel(day: number): string {
 export function getSeasonPriceMultiplier(goodId: GoodId, day: number): number {
   const season = getSeason(day)
   const modifiers: Partial<Record<GoodId, Partial<Record<Season, number>>>> = {
-    fish:         { summer: 0.80, winter: 1.25 },
+    fresh_fish:   { summer: 0.75, winter: 1.30 },
+    salted_fish:  { winter: 1.15, summer: 0.90 },
+    smoked_fish:  { autumn: 0.90, winter: 1.25 },
+    fish_sauce:   { summer: 1.10, winter: 0.95 },
     peat:         { winter: 1.40, summer: 0.75 },
     herbs:        { spring: 0.85, winter: 1.35 },
     wine:         { autumn: 0.85, winter: 1.20 },

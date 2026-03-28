@@ -42,11 +42,41 @@ const ICON_SVG_DATA: Record<GoodId, string> = {
       <ellipse cx="8" cy="10" rx="3" ry="2" fill="#3d6a3d" opacity="0.6"/>
     </svg>
   `,
-  fish: `
+  fresh_fish: `
     <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
-      <path d="M 3 8 Q 5 5 10 5 Q 12 8 10 11 Q 5 11 3 8 Z" fill="#d4a574" stroke="#8b6a47" stroke-width="1"/>
-      <circle cx="9" cy="8" r="1" fill="#2a2a2a"/>
-      <path d="M 11 6 L 14 4 L 12 8 L 14 12 L 11 10 Z" fill="#b89968"/>
+      <path d="M 3 8 Q 5 5 10 5 Q 12 8 10 11 Q 5 11 3 8 Z" fill="#7ab8d4" stroke="#4a88a4" stroke-width="1"/>
+      <circle cx="9" cy="8" r="1" fill="#1a1a2a"/>
+      <path d="M 11 6 L 14 4 L 12 8 L 14 12 L 11 10 Z" fill="#5a98b4"/>
+      <path d="M 5 7 Q 7 6 9 7" stroke="#a0d8f0" stroke-width="0.8" fill="none"/>
+    </svg>
+  `,
+  salted_fish: `
+    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="5" width="12" height="8" fill="#8b6a47" stroke="#5a3a27" stroke-width="1" rx="1"/>
+      <rect x="3" y="6" width="10" height="6" fill="#a07850"/>
+      <rect x="4" y="3" width="8" height="3" fill="#c8c8b8" stroke="#a0a090" stroke-width="0.5" rx="1"/>
+      <rect x="5" y="7" width="2" height="1" fill="#f0f0e0" opacity="0.7"/>
+      <rect x="9" y="8" width="2" height="1" fill="#f0f0e0" opacity="0.7"/>
+      <rect x="6" y="9" width="2" height="1" fill="#f0f0e0" opacity="0.7"/>
+    </svg>
+  `,
+  smoked_fish: `
+    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+      <path d="M 3 9 Q 5 6 10 6 Q 12 9 10 12 Q 5 12 3 9 Z" fill="#7a4a28" stroke="#4a2a10" stroke-width="1"/>
+      <circle cx="9" cy="9" r="1" fill="#1a0a00"/>
+      <path d="M 11 7 L 14 5 L 12 9 L 14 13 L 11 11 Z" fill="#5a3018"/>
+      <path d="M 5 5 Q 6 3 5 1" stroke="#888888" stroke-width="0.8" fill="none" opacity="0.6"/>
+      <path d="M 8 4 Q 9 2 8 0" stroke="#888888" stroke-width="0.8" fill="none" opacity="0.5"/>
+    </svg>
+  `,
+  fish_sauce: `
+    <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+      <rect x="5" y="7" width="6" height="7" fill="#8b5a20" stroke="#5a3010" stroke-width="1" rx="1"/>
+      <rect x="6" y="8" width="4" height="5" fill="#b07830"/>
+      <path d="M 6 7 Q 8 5 10 7" fill="#8b5a20" stroke="#5a3010" stroke-width="0.8"/>
+      <rect x="7" y="4" width="2" height="3" fill="#a06828" stroke="#5a3010" stroke-width="0.5"/>
+      <rect x="6" y="3" width="4" height="1" fill="#c89040" rx="0.5"/>
+      <circle cx="8" cy="10" r="1" fill="#d4a040" opacity="0.6"/>
     </svg>
   `,
   salt: `

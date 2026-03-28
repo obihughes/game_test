@@ -106,14 +106,9 @@ export function MapTravelScreen() {
   }
 
   return (
-    <section className="panel">
-      <header className="panel-header">
-        <h2>World Map</h2>
-        <p className="muted">Click a town to travel · hover for details</p>
-      </header>
-
+    <section className={styles.mapScreen}>
       {lastError ? (
-        <p className="error" role="alert">
+        <p className="error" role="alert" style={{ gridColumn: '1 / -1', margin: '0 0 0.5rem' }}>
           {lastError}{' '}
           <button type="button" className="linkish" onClick={() => clearError()}>
             Dismiss
@@ -226,59 +221,61 @@ export function MapTravelScreen() {
         </svg>
       </div>
 
-      <div className={styles.infoPanel}>
-        {hoveredInfo ? (
-          <>
-            <div className={styles.infoPanelHeader}>
-              <span className={styles.infoPanelName}>{hoveredInfo.name}</span>
-              <span className={styles.infoPanelMeta}>
-                {hoveredInfo.days} day{hoveredInfo.days === 1 ? '' : 's'}
-                {hoveredInfo.toll > 0 ? ` · ${hoveredInfo.toll}g toll` : ' · No toll'}
-              </span>
-            </div>
-            {hoveredInfo.story ? <p className={styles.infoPanelStory}>{hoveredInfo.story}</p> : null}
-            {hoveredInfo.cargoHints.length > 0 ? (
-              <div className={styles.infoPanelCargo}>
-                <span className={styles.infoPanelCargoLabel}>Cargo tip: </span>
-                <ul className={styles.infoPanelCargoList}>
-                  {hoveredInfo.cargoHints.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
+      <aside className={styles.mapSidebar}>
+        <div className={styles.infoPanel}>
+          {hoveredInfo ? (
+            <>
+              <div className={styles.infoPanelHeader}>
+                <span className={styles.infoPanelName}>{hoveredInfo.name}</span>
+                <span className={styles.infoPanelMeta}>
+                  {hoveredInfo.days} day{hoveredInfo.days === 1 ? '' : 's'}
+                  {hoveredInfo.toll > 0 ? ` · ${hoveredInfo.toll}g toll` : ' · No toll'}
+                </span>
               </div>
-            ) : null}
-            <button type="button" className={styles.travelBtn} onClick={() => handleTravelRequest(hoveredInfo.townId)}>
-              Travel to {hoveredInfo.name} →
-            </button>
-          </>
-        ) : (
-          <p className={styles.infoPanelHint}>Hover a connected town to see route details</p>
-        )}
-      </div>
-
-      {reachableTowns.length > 0 ? (
-        <div className={styles.destinationList}>
-          <h3 className={styles.destinationListTitle}>Reachable destinations</h3>
-          <ul className={styles.destinationItems}>
-            {reachableTowns.map((t) => {
-              const route = findRoute(game.location, t.id)
-              if (!route) return null
-              const { days, toll } = computeTravelLeg(game, route)
-              return (
-                <li key={t.id} className={styles.destinationItem}>
-                  <span className={styles.destinationName}>{t.name}</span>
-                  <span className={styles.destinationMeta}>
-                    {days} day{days === 1 ? '' : 's'}{toll > 0 ? ` · ${toll}g toll` : ''}
-                  </span>
-                  <button type="button" className={styles.destinationBtn} onClick={() => handleTravelRequest(t.id)}>
-                    Travel
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
+              {hoveredInfo.story ? <p className={styles.infoPanelStory}>{hoveredInfo.story}</p> : null}
+              {hoveredInfo.cargoHints.length > 0 ? (
+                <div className={styles.infoPanelCargo}>
+                  <span className={styles.infoPanelCargoLabel}>Cargo advantage: </span>
+                  <ul className={styles.infoPanelCargoList}>
+                    {hoveredInfo.cargoHints.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
+              <button type="button" className={styles.travelBtn} onClick={() => handleTravelRequest(hoveredInfo.townId)}>
+                Travel to {hoveredInfo.name} →
+              </button>
+            </>
+          ) : (
+            <p className={styles.infoPanelHint}>Hover a town on the map to see route details</p>
+          )}
         </div>
-      ) : null}
+
+        {reachableTowns.length > 0 ? (
+          <div className={styles.destinationList}>
+            <h3 className={styles.destinationListTitle}>Destinations</h3>
+            <ul className={styles.destinationItems}>
+              {reachableTowns.map((t) => {
+                const route = findRoute(game.location, t.id)
+                if (!route) return null
+                const { days, toll } = computeTravelLeg(game, route)
+                return (
+                  <li key={t.id} className={styles.destinationItem}>
+                    <span className={styles.destinationName}>{t.name}</span>
+                    <span className={styles.destinationMeta}>
+                      {days}d{toll > 0 ? ` · ${toll}g` : ''}
+                    </span>
+                    <button type="button" className={styles.destinationBtn} onClick={() => handleTravelRequest(t.id)}>
+                      Go →
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        ) : null}
+      </aside>
 
       {pendingInfo ? (
         <div

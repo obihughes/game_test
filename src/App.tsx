@@ -82,8 +82,9 @@ export function App() {
           {tab === 'caravan' ? <CaravanScreen /> : null}
         </main>
 
-        <QuestPanel activeQuestId={game.activeQuestId} />
       </div>
+
+      <QuestPanel activeQuestId={game.activeQuestId} />
     </div>
   )
 }

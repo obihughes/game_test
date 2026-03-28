@@ -24,15 +24,36 @@ export const PROCESSING_RECIPES: ProcessingRecipe[] = [
     description: 'Slow-dry and bind dried herbs into a potent dreaming moss cake.',
   },
   {
-    id: 'salt_cure_fish',
-    label: 'Salt-cure fish',
+    id: 'salt_fish',
+    label: 'Salt-cure fresh fish',
     inputs: [
-      { goodId: 'fish', qty: 3 },
+      { goodId: 'fresh_fish', qty: 2 },
       { goodId: 'salt', qty: 1 },
     ],
-    goldCost: 3,
-    outputs: [{ goodId: 'fish', qty: 4 }],
-    description: 'Salt-curing preserves and stretches a barrel of smoked fish.',
+    goldCost: 4,
+    outputs: [{ goodId: 'salted_fish', qty: 2 }],
+    description: 'Pack fresh fish into salt-filled casks to preserve them for long journeys.',
+  },
+  {
+    id: 'smoke_fish',
+    label: 'Smoke fresh fish',
+    inputs: [
+      { goodId: 'fresh_fish', qty: 3 },
+      { goodId: 'peat', qty: 1 },
+    ],
+    goldCost: 6,
+    outputs: [{ goodId: 'smoked_fish', qty: 2 }],
+    description: 'Slow-smoke fish over peat bricks in the warehouse smokehouse — rich flavour, long shelf life.',
+  },
+  {
+    id: 'ferment_fish_sauce',
+    label: 'Ferment fish sauce',
+    inputs: [
+      { goodId: 'salted_fish', qty: 4 },
+    ],
+    goldCost: 8,
+    outputs: [{ goodId: 'fish_sauce', qty: 1 }],
+    description: 'Age salted fish in sealed jugs until they break down into pungent, prized fish sauce.',
   },
 ]
 

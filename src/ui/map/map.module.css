@@ -1,10 +1,32 @@
+.mapScreen {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 1rem;
+  align-items: start;
+  background: #16120e;
+  border: 1px solid #3a3026;
+  border-radius: 10px;
+  padding: 1rem;
+}
+
+@media (max-width: 780px) {
+  .mapScreen {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mapSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
 .mapWrap {
   position: relative;
 }
 
 .svg {
   width: 100%;
-  max-width: 560px;
   height: auto;
   display: block;
   border-radius: 10px;
@@ -61,9 +83,8 @@
   pointer-events: none;
 }
 
-/* Info panel sits below the SVG */
+/* Info panel sits in the sidebar */
 .infoPanel {
-  margin-top: 0.75rem;
   padding: 0.7rem 1rem;
   border-radius: 8px;
   border: 1px solid #3a3026;
@@ -142,7 +163,7 @@
 
 /* Destinations quick-travel list */
 .destinationList {
-  margin-top: 1rem;
+  margin-top: 0;
 }
 
 .destinationListTitle {

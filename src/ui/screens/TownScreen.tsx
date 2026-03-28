@@ -42,6 +42,7 @@ export function TownScreen() {
 
   const [qty, setQty] = useState(1)
   const [marketTab, setMarketTab] = useState<MarketTab>('market')
+  const [showLore, setShowLore] = useState(false)
   const [whQty, setWhQty] = useState<Record<string, number>>({})
   const confirmTitleId = useId()
   const confirmBodyId = useId()
@@ -209,29 +210,40 @@ export function TownScreen() {
     <section className="market-screen">
       <div className="market-screen__header">
         <div className="market-screen__title-bar">
-          <LocationPixelIcon className="pixel-icon" townId={game.location} size={40} />
+          <LocationPixelIcon className="pixel-icon" townId={game.location} size={36} />
           <div className="market-screen__title-text">
-            <h2>{townName}</h2>
-            <p className="market-screen__story">{story}</p>
+            <div className="market-screen__title-row">
+              <h2>{townName}</h2>
+              {story && (
+                <button
+                  type="button"
+                  className="lore-btn"
+                  title="Town lore"
+                  onClick={() => setShowLore((v) => !v)}
+                  aria-expanded={showLore}
+                >
+                  📜
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="market-screen__stats">
+            <span className="stat-pill stat-pill--weight">
+              <span className="stat-pill__label">Cargo</span>
+              <strong>{currentWeight}</strong>
+              <span className="stat-pill__sep">/</span>
+              <span>{maxWeight}</span>
+            </span>
+            <span className="stat-pill stat-pill--spare">
+              <span className="stat-pill__label">Spare</span>
+              <strong>{spare}</strong>
+            </span>
           </div>
         </div>
 
-        <div className="market-screen__stats">
-          <span className="stat-pill stat-pill--gold">
-            <span className="stat-pill__label">Gold</span>
-            <strong>{game.gold}</strong>
-          </span>
-          <span className="stat-pill stat-pill--weight">
-            <span className="stat-pill__label">Cargo</span>
-            <strong>{currentWeight}</strong>
-            <span className="stat-pill__sep">/</span>
-            <span>{maxWeight}</span>
-          </span>
-          <span className="stat-pill stat-pill--spare">
-            <span className="stat-pill__label">Spare</span>
-            <strong>{spare}</strong>
-          </span>
-        </div>
+        {showLore && story && (
+          <p className="market-screen__story market-screen__story--expanded">{story}</p>
+        )}
 
         {lastError && (
           <p className="market-screen__error" role="alert">

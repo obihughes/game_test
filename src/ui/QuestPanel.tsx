@@ -10,8 +10,8 @@ export function QuestPanel({ activeQuestId }: QuestPanelProps) {
   if (!quest) {
     return (
       <aside className="quest-panel">
-        <h3>Current task</h3>
-        <p className="muted">No active task. You are free to trade.</p>
+        <h3>Task</h3>
+        <p className="muted">No active task — you are free to trade.</p>
       </aside>
     )
   }

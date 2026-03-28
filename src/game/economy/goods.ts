@@ -38,12 +38,33 @@ export const GOODS: Record<GoodId, Good> = {
     dialogFlavorId: 'good_herbs',
     icon: '🌿',
   },
-  fish: {
-    id: 'fish',
-    name: 'Barrel of smoked fish',
+  fresh_fish: {
+    id: 'fresh_fish',
+    name: 'Fresh fish (barrel)',
     weightPerUnit: 2,
-    dialogFlavorId: 'good_fish',
+    dialogFlavorId: 'good_fresh_fish',
     icon: '🐟',
+  },
+  salted_fish: {
+    id: 'salted_fish',
+    name: 'Salted fish (cask)',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_salted_fish',
+    icon: '🥩',
+  },
+  smoked_fish: {
+    id: 'smoked_fish',
+    name: 'Smoked fish (barrel)',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_smoked_fish',
+    icon: '🍖',
+  },
+  fish_sauce: {
+    id: 'fish_sauce',
+    name: 'Fish sauce (jug)',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_fish_sauce',
+    icon: '🫙',
   },
   salt: {
     id: 'salt',
