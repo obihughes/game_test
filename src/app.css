@@ -347,6 +347,215 @@ button:active:not(:disabled) {
   display: block;
 }
 
+/* Ambient motion on market SVG scenes (class names on <g> in MarketBackdrop.tsx) */
+@keyframes forgeFlicker {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  40% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.88;
+  }
+}
+
+@keyframes reedsWay {
+  from {
+    transform: rotate(-1.5deg);
+  }
+  to {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes waterRipple {
+  from {
+    transform: translateX(-3px);
+  }
+  to {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes bannerWave {
+  from {
+    transform: rotate(-1.2deg);
+  }
+  to {
+    transform: rotate(1.2deg);
+  }
+}
+
+@keyframes lampBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes smokeRise {
+  0% {
+    opacity: 0.35;
+    transform: translateY(4px) scale(0.95);
+  }
+  100% {
+    opacity: 0.08;
+    transform: translateY(-14px) scale(1.05);
+  }
+}
+
+@keyframes mastSway {
+  from {
+    transform: rotate(-1.2deg);
+  }
+  to {
+    transform: rotate(1.2deg);
+  }
+}
+
+@keyframes npcIdleBob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes portraitFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.market-backdrop__forge-fire rect:nth-child(1) {
+  animation: forgeFlicker 0.42s ease-in-out infinite;
+}
+
+.market-backdrop__forge-fire rect:nth-child(2) {
+  animation: forgeFlicker 0.5s ease-in-out infinite;
+  animation-delay: 0.08s;
+}
+
+.market-backdrop__forge-fire rect:nth-child(3) {
+  animation: forgeFlicker 0.38s ease-in-out infinite;
+  animation-delay: 0.04s;
+}
+
+.market-backdrop__reeds {
+  transform-box: fill-box;
+  transform-origin: center 85%;
+  animation: reedsWay 4.2s ease-in-out infinite alternate;
+}
+
+.market-backdrop__water {
+  transform-box: fill-box;
+  transform-origin: center 90%;
+  animation: waterRipple 5s ease-in-out infinite alternate;
+}
+
+.market-backdrop__banner {
+  transform-box: fill-box;
+  animation: bannerWave 3.2s ease-in-out infinite alternate;
+}
+
+.market-backdrop__banner--left {
+  transform-origin: 58% 22%;
+}
+
+.market-backdrop__banner--right {
+  transform-origin: 66% 20%;
+  animation-duration: 2.7s;
+  animation-direction: alternate-reverse;
+}
+
+.market-backdrop__lamps circle {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: lampBob 2.8s ease-in-out infinite;
+}
+
+.market-backdrop__lamps circle:nth-child(2) {
+  animation-delay: 0.35s;
+}
+
+.market-backdrop__lamps circle:nth-child(3) {
+  animation-delay: 0.7s;
+}
+
+.market-backdrop__smoke circle {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: smokeRise 4s ease-in-out infinite;
+}
+
+.market-backdrop__smoke circle:nth-child(2) {
+  animation-delay: 0.9s;
+  animation-duration: 4.6s;
+}
+
+.market-backdrop__smoke circle:nth-child(3) {
+  animation-delay: 1.6s;
+  animation-duration: 5.2s;
+}
+
+.market-backdrop__masts {
+  transform-box: fill-box;
+  transform-origin: 82% 58%;
+  animation: mastSway 4.5s ease-in-out infinite alternate;
+}
+
+.npc-portrait {
+  flex-shrink: 0;
+  border: 1px solid #5c4a3644;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(10, 8, 6, 0.92);
+}
+
+.npc-portrait__svg {
+  display: block;
+}
+
+.npc-portrait--large {
+  animation: npcIdleBob 3s ease-in-out infinite;
+}
+
+.npc-dialog .npc-portrait--large .npc-portrait__svg {
+  animation: portraitFadeIn 0.42s ease-out both;
+}
+
+.npc-card__identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.npc-card__identity h4 {
+  margin: 0;
+}
+
+.npc-dialog__identity {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.npc-dialog__identity h4 {
+  margin: 0;
+}
+
 .market-screen__header {
   margin-bottom: 1rem;
   border-bottom: 1px solid #3a3026;

@@ -2,6 +2,8 @@ import type { GameState, GoodId, TownId } from '@/game/core/types.ts'
 
 export interface StoryNpcDef {
   id: string
+  /** Key into `NpcPortrait` pixel art; defaults to `id` when omitted. */
+  portraitId?: string
   townId: TownId
   name: string
   title: string

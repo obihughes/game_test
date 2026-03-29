@@ -12,6 +12,7 @@ import {
   getVisibleOptions,
 } from '@/game/story/index.ts'
 import { useGameStore } from '@/store/gameStore.ts'
+import { NpcPortrait } from '@/ui/icons/NpcPortrait.tsx'
 
 function favorLabel(favor: number): string {
   if (favor >= 20) return 'Trusted'
@@ -66,9 +67,17 @@ export function NpcPanel({ game }: NpcPanelProps) {
           return (
             <article key={npc.id} className={`npc-card${isActive ? ' npc-card--active' : ''}`}>
               <div className="npc-card__header">
-                <div>
-                  <h4>{npc.name}</h4>
-                  <p className="muted small">{npc.title}</p>
+                <div className="npc-card__identity">
+                  <NpcPortrait
+                    portraitId={npc.portraitId}
+                    npcId={npc.id}
+                    size="small"
+                    title={npc.name}
+                  />
+                  <div>
+                    <h4>{npc.name}</h4>
+                    <p className="muted small">{npc.title}</p>
+                  </div>
                 </div>
                 <span className="npc-card__favor">{favorLabel(relationship.favor)}</span>
               </div>
@@ -98,9 +107,17 @@ export function NpcPanel({ game }: NpcPanelProps) {
       {activeNpc && activeNode ? (
         <div className="npc-dialog">
           <div className="npc-dialog__header">
-            <div>
-              <h4>{activeNpc.name}</h4>
-              <p className="muted small">{activeNpc.title}</p>
+            <div className="npc-dialog__identity">
+              <NpcPortrait
+                portraitId={activeNpc.portraitId}
+                npcId={activeNpc.id}
+                size="large"
+                title={activeNpc.name}
+              />
+              <div>
+                <h4>{activeNpc.name}</h4>
+                <p className="muted small">{activeNpc.title}</p>
+              </div>
             </div>
             <button
               type="button"

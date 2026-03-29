@@ -42,9 +42,11 @@ function renderTownScene(townId: TownId) {
           <circle cx="340" cy="82" r="30" fill="rgba(201,166,107,0.18)" />
           <circle cx="186" cy="84" r="38" fill="rgba(201,166,107,0.08)" />
           <circle cx="366" cy="60" r="44" fill="rgba(201,166,107,0.07)" />
-          <rect x="278" y="226" width="18" height="42" fill="rgba(229,134,62,0.45)" />
-          <rect x="304" y="216" width="18" height="52" fill="rgba(229,134,62,0.38)" />
-          <rect x="330" y="232" width="18" height="36" fill="rgba(229,134,62,0.34)" />
+          <g className="market-backdrop__forge-fire">
+            <rect x="278" y="226" width="18" height="42" fill="rgba(229,134,62,0.45)" />
+            <rect x="304" y="216" width="18" height="52" fill="rgba(229,134,62,0.38)" />
+            <rect x="330" y="232" width="18" height="36" fill="rgba(229,134,62,0.34)" />
+          </g>
         </>
       )
     case 'mirecross':
@@ -64,15 +66,19 @@ function renderTownScene(townId: TownId) {
           <rect x="468" y="286" width="10" height="44" fill="rgba(64,76,68,0.72)" />
           <rect x="526" y="286" width="10" height="44" fill="rgba(64,76,68,0.72)" />
           <path d="M0 318 C110 304, 220 334, 332 316 S554 306, 684 324 S946 340, 1200 312" fill="none" stroke="rgba(152,176,166,0.14)" strokeWidth="18" />
-          <path d="M34 320 L44 272 M62 320 L72 264 M88 320 L98 274 M980 324 L992 266 M1016 326 L1028 274 M1054 324 L1062 268" stroke="rgba(94,126,110,0.42)" strokeWidth="5" strokeLinecap="round" />
+          <g className="market-backdrop__reeds">
+            <path d="M34 320 L44 272 M62 320 L72 264 M88 320 L98 274 M980 324 L992 266 M1016 326 L1028 274 M1054 324 L1062 268" stroke="rgba(94,126,110,0.42)" strokeWidth="5" strokeLinecap="round" />
+          </g>
         </>
       )
     case 'riversend':
       return (
         <>
           <rect x="0" y="310" width="1200" height="110" fill="rgba(14,26,32,0.7)" />
-          <rect x="0" y="300" width="1200" height="20" fill="rgba(56,102,124,0.2)" />
-          <path d="M0 286 L180 256 L338 270 L478 230 L638 250 L782 228 L940 248 L1088 222 L1200 236 L1200 420 L0 420 Z" fill="rgba(20,32,38,0.46)" />
+          <g className="market-backdrop__water">
+            <rect x="0" y="300" width="1200" height="20" fill="rgba(56,102,124,0.2)" />
+            <path d="M0 286 L180 256 L338 270 L478 230 L638 250 L782 228 L940 248 L1088 222 L1200 236 L1200 420 L0 420 Z" fill="rgba(20,32,38,0.46)" />
+          </g>
           <rect x="138" y="198" width="112" height="106" fill="rgba(30,32,34,0.7)" />
           <rect x="280" y="214" width="88" height="90" fill="rgba(30,30,32,0.64)" />
           <rect x="782" y="206" width="108" height="98" fill="rgba(28,30,34,0.68)" />
@@ -97,8 +103,12 @@ function renderTownScene(townId: TownId) {
           <rect x="878" y="176" width="142" height="130" fill="rgba(40,30,20,0.72)" />
           <rect x="364" y="94" width="16" height="110" fill="rgba(70,54,28,0.7)" />
           <rect x="742" y="82" width="18" height="118" fill="rgba(70,54,28,0.74)" />
-          <polygon points="380,96 440,114 380,132" fill="rgba(164,74,56,0.42)" />
-          <polygon points="760,86 832,106 760,128" fill="rgba(188,152,74,0.36)" />
+          <g className="market-backdrop__banner market-backdrop__banner--left">
+            <polygon points="380,96 440,114 380,132" fill="rgba(164,74,56,0.42)" />
+          </g>
+          <g className="market-backdrop__banner market-backdrop__banner--right">
+            <polygon points="760,86 832,106 760,128" fill="rgba(188,152,74,0.36)" />
+          </g>
           <rect x="704" y="214" width="96" height="14" fill="rgba(198,166,107,0.16)" />
           <rect x="704" y="238" width="96" height="14" fill="rgba(198,166,107,0.12)" />
         </>
@@ -121,9 +131,11 @@ function renderTownScene(townId: TownId) {
           <rect x="414" y="276" width="8" height="66" fill="rgba(82,96,78,0.72)" />
           <rect x="646" y="278" width="8" height="62" fill="rgba(82,96,78,0.72)" />
           <rect x="688" y="278" width="8" height="62" fill="rgba(82,96,78,0.72)" />
-          <circle cx="812" cy="188" r="9" fill="rgba(228,192,104,0.26)" />
-          <circle cx="874" cy="160" r="7" fill="rgba(228,192,104,0.22)" />
-          <circle cx="934" cy="202" r="8" fill="rgba(228,192,104,0.18)" />
+          <g className="market-backdrop__lamps">
+            <circle cx="812" cy="188" r="9" fill="rgba(228,192,104,0.26)" />
+            <circle cx="874" cy="160" r="7" fill="rgba(228,192,104,0.22)" />
+            <circle cx="934" cy="202" r="8" fill="rgba(228,192,104,0.18)" />
+          </g>
         </>
       )
     case 'stoneholt':
@@ -137,6 +149,11 @@ function renderTownScene(townId: TownId) {
           <rect x="706" y="182" width="18" height="112" fill="rgba(56,44,32,0.72)" />
           <rect x="716" y="176" width="102" height="8" fill="rgba(56,44,32,0.72)" />
           <path d="M818 180 L858 236" stroke="rgba(94,80,58,0.64)" strokeWidth="6" />
+          <g className="market-backdrop__smoke">
+            <circle cx="778" cy="168" r="14" fill="rgba(72,64,58,0.22)" />
+            <circle cx="798" cy="152" r="10" fill="rgba(88,78,70,0.2)" />
+            <circle cx="820" cy="172" r="12" fill="rgba(64,58,52,0.18)" />
+          </g>
           <rect x="822" y="238" width="42" height="28" rx="5" fill="rgba(44,34,28,0.8)" />
           <circle cx="832" cy="270" r="8" fill="rgba(94,80,58,0.72)" />
           <circle cx="854" cy="270" r="8" fill="rgba(94,80,58,0.72)" />
@@ -156,7 +173,9 @@ function renderTownScene(townId: TownId) {
           <polygon points="735,220 806,256 735,270" fill="rgba(216,224,228,0.22)" />
           <rect x="814" y="226" width="8" height="88" fill="rgba(74,84,90,0.68)" />
           <polygon points="822,232 880,262 822,272" fill="rgba(216,224,228,0.18)" />
-          <path d="M934 316 L934 244 M978 316 L978 252 M1022 316 L1022 242 M1064 316 L1064 250" stroke="rgba(122,136,144,0.54)" strokeWidth="5" strokeLinecap="round" />
+          <g className="market-backdrop__masts">
+            <path d="M934 316 L934 244 M978 316 L978 252 M1022 316 L1022 242 M1064 316 L1064 250" stroke="rgba(122,136,144,0.54)" strokeWidth="5" strokeLinecap="round" />
+          </g>
         </>
       )
     default:

@@ -3,6 +3,7 @@ import type { StoryNpcDef } from '@/game/story/types.ts'
 export const STORY_NPCS: StoryNpcDef[] = [
   {
     id: 'thorne',
+    portraitId: 'thorne',
     townId: 'ashenford',
     name: 'Master Thorne',
     title: 'Ashenford Smith',
@@ -10,6 +11,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'veris',
+    portraitId: 'veris',
     townId: 'mirecross',
     name: 'Veris Tollward',
     title: 'Crossroads Keeper',
@@ -17,6 +19,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'kess',
+    portraitId: 'kess',
     townId: 'riversend',
     name: 'Harbormaster Kess',
     title: 'Dockmaster of Riversend',
@@ -24,6 +27,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'aldric',
+    portraitId: 'aldric',
     townId: 'crownpost',
     name: 'Magistrate Aldric',
     title: 'Crown Exchange Warden',
@@ -31,6 +35,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'lyris',
+    portraitId: 'lyris',
     townId: 'crownpost',
     name: 'Lyris Vale',
     title: 'Independent Factor',
@@ -38,6 +43,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'caera',
+    portraitId: 'caera',
     townId: 'fenward',
     name: 'Caera of the Reeds',
     title: 'Fen Broker',
@@ -45,6 +51,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'brennan',
+    portraitId: 'brennan',
     townId: 'stoneholt',
     name: 'Factor Brennan',
     title: 'Mine Quartermaster',
@@ -52,6 +59,7 @@ export const STORY_NPCS: StoryNpcDef[] = [
   },
   {
     id: 'halas',
+    portraitId: 'halas',
     townId: 'saltmere',
     name: 'Captain Halas',
     title: 'Saltmere Free Keel',
