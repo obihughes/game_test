@@ -5,3 +5,4 @@ export {
   getLocationStory,
   getLocationPanelBackground,
 } from './locationContent.ts'
+export { STORY_DIALOG_NODES, STORY_NPCS, STORY_QUESTS } from './story/index.ts'

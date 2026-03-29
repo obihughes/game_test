@@ -98,7 +98,7 @@ export function App() {
         </main>
       </div>
 
-      <QuestPanel activeQuestId={game.activeQuestId} />
+      <QuestPanel game={game} />
 
       {activeTravelResult ? (
         <TravelAnimation travelResult={activeTravelResult} onComplete={handleTravelComplete} />

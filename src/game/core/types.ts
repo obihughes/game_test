@@ -46,6 +46,27 @@ export interface TravelEncounter {
   effectText?: string
 }
 
+export interface StoryQuestProgressState {
+  status: 'active' | 'completed'
+  startedDay: number
+  completedDay?: number
+}
+
+export interface NpcRelationshipState {
+  timesSpokenTo: number
+  lastSpokenDay: number
+  favor: number
+}
+
+export interface StoryState {
+  flags: Record<string, boolean>
+  activeQuestIds: string[]
+  completedQuestIds: string[]
+  questProgress: Record<string, StoryQuestProgressState>
+  npcRelationships: Record<string, NpcRelationshipState>
+  unlockedEasterEggs: string[]
+}
+
 export interface GameState {
   version: number
   gold: number
@@ -67,6 +88,8 @@ export interface GameState {
   townVisits: Partial<Record<TownId, number>>
   /** The last encounter that occurred during travel, cleared when dismissed. */
   lastEncounter: TravelEncounter | null
+  /** Branching story flags, quest progress, and NPC relationship state. */
+  story: StoryState
 }
 
 export type GameResult =

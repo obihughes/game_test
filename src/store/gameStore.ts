@@ -33,6 +33,12 @@ import {
 } from '@/game/investments/warehouse.ts'
 import { rollEncounter } from '@/game/events/encounters.ts'
 import { useItem as useItemAction } from '@/game/inventory/useItem.ts'
+import {
+  applyStoryProgression,
+  chooseStoryOption as chooseStoryOptionAction,
+  createEmptyStoryState,
+  startStoryConversation as startStoryConversationAction,
+} from '@/game/story/index.ts'
 
 export interface CartItem {
   goodId: GoodId
@@ -72,6 +78,8 @@ export interface GameStore {
   startTimedJob: (townId: TownId, recipeId: string) => void
   collectJob: (townId: TownId, jobId: string) => void
   useItem: (goodId: GoodId) => void
+  startStoryConversation: (npcId: string) => string | null
+  chooseStoryOption: (nodeId: string, optionId: string) => string | null
   clearError: () => void
   reset: () => void
 }
@@ -80,6 +88,10 @@ function applyUpkeepForTravel(stateAfterTravel: GameState, days: number): GameSt
   const rate = dailyHireCost(stateAfterTravel)
   if (rate <= 0) return stateAfterTravel
   return { ...stateAfterTravel, gold: Math.max(0, stateAfterTravel.gold - rate * days) }
+}
+
+function finalizeGameState(state: GameState): GameState {
+  return applyStoryProgression(applyQuestProgress(state))
 }
 
 export const useGameStore = create<GameStore>()(
@@ -135,7 +147,7 @@ export const useGameStore = create<GameStore>()(
           }
           next = { ...next, townVisits: newVisits, lastEncounter: encounter }
 
-          next = applyQuestProgress(next)
+          next = finalizeGameState(next)
 
           const routeNames = [before.location, ...plan.routes.map((rt) => rt.to)]
           result = {
@@ -159,7 +171,7 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           const r = buyGood(s.game, goodId, qty)
           if (!r.ok) return { ...s, lastError: r.reason }
-          const next = applyQuestProgress(r.state)
+          const next = finalizeGameState(r.state)
           return { game: next, lastError: null }
         }),
 
@@ -167,7 +179,7 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           const r = sellGood(s.game, goodId, qty)
           if (!r.ok) return { ...s, lastError: r.reason }
-          const next = applyQuestProgress(r.state)
+          const next = finalizeGameState(r.state)
           return { game: next, lastError: null }
         }),
 
@@ -183,91 +195,91 @@ export const useGameStore = create<GameStore>()(
             if (!r.ok) return { ...s, lastError: r.reason }
             state = r.state
           }
-          return { game: applyQuestProgress(state), lastError: null }
+          return { game: finalizeGameState(state), lastError: null }
         }),
 
       upgradeCart: () =>
         set((s) => {
           const r = upgradeCartAction(s.game)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: applyQuestProgress(r.state), lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       purchaseHorse: () =>
         set((s) => {
           const r = buyHorse(s.game)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: applyQuestProgress(r.state), lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       hire: (role) =>
         set((s) => {
           const r = hireRole(s.game, role)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: applyQuestProgress(r.state), lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       dismissHire: (role) =>
         set((s) => {
           const r = dismissHireAction(s.game, role)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: applyQuestProgress(r.state), lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       buildWarehouse: (townId) =>
         set((s) => {
           const r = buildWarehouseAction(s.game, townId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       upgradeWarehouse: (townId) =>
         set((s) => {
           const r = upgradeWarehouseAction(s.game, townId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       buildFacility: (townId, facilityId) =>
         set((s) => {
           const r = buildFacilityAction(s.game, townId, facilityId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       upgradeFacility: (townId, facilityId) =>
         set((s) => {
           const r = upgradeFacilityAction(s.game, townId, facilityId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       depositGoods: (townId, goodId, qty) =>
         set((s) => {
           const r = depositGoodsAction(s.game, townId, goodId, qty)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       withdrawGoods: (townId, goodId, qty) =>
         set((s) => {
           const r = withdrawGoodsAction(s.game, townId, goodId, qty)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       processRecipe: (townId, recipeId) =>
         set((s) => {
           const r = processRecipeAction(s.game, townId, recipeId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       startTimedJob: (townId, recipeId) =>
         set((s) => {
           const r = startTimedJobAction(s.game, townId, recipeId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: r.state, lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
 
       collectJob: (townId, jobId) =>
@@ -281,8 +293,28 @@ export const useGameStore = create<GameStore>()(
         set((s) => {
           const r = useItemAction(s.game, goodId)
           if (!r.ok) return { ...s, lastError: r.reason }
-          return { game: applyQuestProgress(r.state), lastError: null }
+          return { game: finalizeGameState(r.state), lastError: null }
         }),
+
+      startStoryConversation: (npcId) => {
+        let nextNodeId: string | null = null
+        set((s) => {
+          const result = startStoryConversationAction(s.game, npcId)
+          nextNodeId = result.nextNodeId
+          return { game: finalizeGameState(result.state), lastError: null }
+        })
+        return nextNodeId
+      },
+
+      chooseStoryOption: (nodeId, optionId) => {
+        let nextNodeId: string | null = null
+        set((s) => {
+          const result = chooseStoryOptionAction(s.game, nodeId, optionId)
+          nextNodeId = result.nextNodeId
+          return { game: finalizeGameState(result.state), lastError: null }
+        })
+        return nextNodeId
+      },
     }),
     {
       name: STORAGE_KEY,
@@ -317,6 +349,9 @@ export const useGameStore = create<GameStore>()(
         if (!('lastEncounter' in (g as object))) {
           g = { ...g, lastEncounter: null, version: SAVE_VERSION }
         }
+        if (!('story' in (g as object))) {
+          g = { ...g, story: createEmptyStoryState(), version: SAVE_VERSION }
+        }
         if (!g.caravan || typeof g.caravan !== 'object') {
           return { game: createInitialState(), lastError: null }
         }
@@ -339,7 +374,23 @@ export const useGameStore = create<GameStore>()(
             facilities: wh.facilities && typeof wh.facilities === 'object' ? wh.facilities : {},
           }
         }
-        g = { ...g, townWarehouses: updatedWarehouses, version: SAVE_VERSION }
+        const story = g.story && typeof g.story === 'object' ? g.story : createEmptyStoryState()
+        g = {
+          ...g,
+          townWarehouses: updatedWarehouses,
+          story: {
+            flags: story.flags && typeof story.flags === 'object' ? story.flags : {},
+            activeQuestIds: Array.isArray(story.activeQuestIds) ? story.activeQuestIds : [],
+            completedQuestIds: Array.isArray(story.completedQuestIds) ? story.completedQuestIds : [],
+            questProgress: story.questProgress && typeof story.questProgress === 'object' ? story.questProgress : {},
+            npcRelationships:
+              story.npcRelationships && typeof story.npcRelationships === 'object'
+                ? story.npcRelationships
+                : {},
+            unlockedEasterEggs: Array.isArray(story.unlockedEasterEggs) ? story.unlockedEasterEggs : [],
+          },
+          version: SAVE_VERSION,
+        }
         return { game: g, lastError: null }
       },
     },

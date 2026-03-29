@@ -1,4 +1,5 @@
 import { createInitialState, SAVE_VERSION, type GameState } from '../core/index.ts'
+import { createEmptyStoryState } from '../story/index.ts'
 
 export function migrateState(raw: unknown): GameState {
   if (!raw || typeof raw !== 'object') {
@@ -48,6 +49,20 @@ export function migrateState(raw: unknown): GameState {
             ]),
           )
         : {},
+    version: SAVE_VERSION,
+  }
+  const story = g.story && typeof g.story === 'object' ? g.story : createEmptyStoryState()
+  g = {
+    ...g,
+    story: {
+      flags: story.flags && typeof story.flags === 'object' ? story.flags : {},
+      activeQuestIds: Array.isArray(story.activeQuestIds) ? story.activeQuestIds : [],
+      completedQuestIds: Array.isArray(story.completedQuestIds) ? story.completedQuestIds : [],
+      questProgress: story.questProgress && typeof story.questProgress === 'object' ? story.questProgress : {},
+      npcRelationships:
+        story.npcRelationships && typeof story.npcRelationships === 'object' ? story.npcRelationships : {},
+      unlockedEasterEggs: Array.isArray(story.unlockedEasterEggs) ? story.unlockedEasterEggs : [],
+    },
     version: SAVE_VERSION,
   }
   return g

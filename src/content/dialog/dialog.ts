@@ -45,6 +45,175 @@ export const DIALOG: Record<string, string> = {
   good_cart_upgrade_kit: 'Braces, bolts, and fresh rigging bundled for a wagon that plans to survive the next bad road.',
   good_elixir_of_insight: 'A clear draught that sharpens the road ahead and makes a trader trust the right instincts.',
 
+  story_npc_thorne_summary: 'Ashenford\'s best smith. Watches Crown contracts with open suspicion.',
+  story_npc_veris_summary: 'Keeps the Mirecross toll books and hears every rumour twice.',
+  story_npc_kess_summary: 'Dockmaster who knows exactly which cargoes are worth protecting.',
+  story_npc_aldric_summary: 'Smooth Crown clerk with a license for every inconvenience.',
+  story_npc_lyris_summary: 'Independent factor whispering that free roads are still possible.',
+  story_npc_caera_summary: 'Fen broker whose lantern routes never appear on official maps.',
+  story_npc_brennan_summary: 'Quartermaster for hungry miners and colder ledgers.',
+  story_npc_halas_summary: 'Captain of one of the last ships that still calls itself free.',
+
+  story_quest_roadside_whispers_title: 'Roadside Whispers',
+  story_quest_roadside_whispers_body:
+    'Master Thorne wants word carried to Veris at Mirecross. Reach the crossroads and see who is listening.',
+  story_quest_roadside_whispers_done:
+    'You reached Mirecross and Thorne\'s warning is already moving faster than carts.',
+  story_quest_crossroads_manifest_title: 'Crossroads Manifest',
+  story_quest_crossroads_manifest_body:
+    'Veris wants a read on Crownpost. Travel there and see whether the Crown is tightening its grip or merely smiling while it does it.',
+  story_quest_crossroads_manifest_done:
+    'You have seen Crownpost up close. Veris will want the measure of it.',
+  story_quest_crown_license_title: 'Stamped License',
+  story_quest_crown_license_body:
+    'Aldric has sold you legitimacy. Deliver 2 silk to Riversend and prove a licensed merchant can move luxury cargo without incident.',
+  story_quest_crown_license_done:
+    'The silk reached Riversend under Crown paper. Aldric will call that proof.',
+  story_quest_quiet_relay_title: 'Quiet Relay',
+  story_quest_quiet_relay_body:
+    'Lyris needs 2 rope delivered to Fenward without making a performance of it. Quiet trade keeps free routes alive.',
+  story_quest_quiet_relay_done:
+    'Fenward received the rope and Lyris now has another shadow route to count on.',
+  story_quest_harbor_tally_title: 'Harbor Tally',
+  story_quest_harbor_tally_body:
+    'Kess wants 2 timber delivered through the official books. Riversend will pay for proof that order and profit can still shake hands.',
+  story_quest_harbor_tally_done:
+    'The timber has been marked, measured, and entered in Kess\'s tidy hand.',
+  story_quest_fen_relay_title: 'Lantern Relay',
+  story_quest_fen_relay_body:
+    'Caera wants 2 pitch carried to Saltmere. She says every hidden route eventually needs honest fire.',
+  story_quest_fen_relay_done:
+    'Saltmere has the pitch and Caera now trusts you with a road few clerks will ever see.',
+  story_quest_miners_union_title: 'Warm the Miners',
+  story_quest_miners_union_body:
+    'Brennan needs 3 grain hauled up to Stoneholt. Fed miners complain louder and work smarter.',
+  story_quest_miners_union_done:
+    'Stoneholt has grain enough for a few easier nights, and Brennan will remember it.',
+  story_quest_double_booked_title: 'Double Booked',
+  story_quest_double_booked_body:
+    'Veris thinks you can walk two ledgers at once. Bring 1 wine to Saltmere and let Captain Halas decide whether your face belongs on the water.',
+  story_quest_double_booked_done:
+    'The wine changed hands in Saltmere and the roads now bend a little differently around you.',
+
+  story_option_goodbye: 'Leave the conversation there.',
+
+  story_node_thorne_intro:
+    'Master Thorne scrapes soot from his knuckles and watches the road more than the anvil. "Crownpost has started asking who owns the road. Men who ask that question usually mean to invoice it."',
+  story_option_thorne_offer_whispers: 'Ask what he needs from you.',
+  story_option_thorne_decline: 'Tell him you only came to trade.',
+  story_node_thorne_offer_done:
+    '"Good," Thorne says. "Carry my worry to Veris in Mirecross. He keeps one ear on tolls and the other on lies. If the Crown is tightening the chain, he will hear the first link snap."',
+  story_node_thorne_progress:
+    '"Mirecross first," Thorne says. "Veris will know whether this is a tax or a trap."',
+  story_node_thorne_after:
+    'Thorne nods when he sees you. "So the crossroads is listening. Good. If you head uphill, speak with Brennan in Stoneholt. Hungry miners make for dangerous bookkeeping."',
+  story_option_thorne_after_brennan: 'Ask why Stoneholt matters.',
+  story_node_thorne_after_brennan_reply:
+    '"Because iron obeys no clerk," Thorne says. "If the mines go hungry, every town pays for it twice."',
+
+  story_node_veris_intro:
+    'Veris leans on the toll rail like he owns the weather. "Thorne sent you? Then you have either bad timing or useful timing. Crownpost is smiling too much, which is always expensive."',
+  story_option_veris_offer_manifest: 'Offer to take the measure of Crownpost.',
+  story_option_veris_bribe: 'Slide him 20 crowns for the sharper version.',
+  story_node_veris_offer_done:
+    '"Look at the clerks, the queues, and who suddenly speaks softly," Veris says. "Bring me the mood of Crownpost. Moods move markets before numbers do."',
+  story_node_veris_bribe_reply:
+    'Veris palms the coin without looking. "Exact change. That tells me more than the gold. Watch Crownpost for licenses, private guards, and silk moving where hunger ought to be."',
+  story_node_veris_progress:
+    '"Crownpost," Veris repeats. "Do not count wagons. Count who is afraid of being counted."',
+  story_node_veris_double_intro:
+    'Veris smiles as if he has already sold the conversation elsewhere. "You have been useful to more than one set of books. That sort of talent makes nations nervous."',
+  story_option_veris_start_double: 'Ask what kind of work needs two ledgers.',
+  story_option_veris_reveal_seal: 'Ask why he still wears a Crown seal on the inside of his cuff.',
+  story_node_veris_double_started:
+    '"Take a single bottle of wine to Saltmere," Veris says. "Halas will know which bottle matters. If he trusts you, the coast opens. If he does not, drink it yourself and lie better next time."',
+  story_node_veris_reveal_seal_reply:
+    'Veris laughs once. "Because old habits keep doors open. Also because it annoys the people who thought they took it from me."',
+  story_node_veris_double_progress:
+    '"Saltmere," Veris says. "One bottle. One captain. After that, you stop being a merchant people can comfortably sort."',
+
+  story_node_aldric_intro:
+    'Magistrate Aldric adjusts a seal-stamped ledger and smiles like polished brass. "Trade is healthier when supervised. Eighty crowns makes you licensed, predictable, and therefore welcome."',
+  story_option_aldric_accept: 'Pay 80 crowns and take the Crown license.',
+  story_option_aldric_probe: 'Ask why the Crown suddenly cares so much.',
+  story_node_aldric_accept_done:
+    '"Excellent," Aldric says. "Now prove the papers deserve ink. Move 2 silk to Riversend. Let the harbor see that licensed caravans deliver clean cargo on clean terms."',
+  story_node_aldric_probe_reply:
+    'Aldric folds his hands. "Because disorder is expensive. Because someone must decide what fair trade looks like before panic does. Because a road without records belongs to the loudest knife."',
+  story_node_aldric_progress:
+    '"Riversend is waiting on silk and discipline," Aldric says. "Arrive with both."',
+  story_node_aldric_after:
+    'Aldric taps your completed papers. "You see? Order pays. Continue long enough and even your enemies will call you dependable."',
+
+  story_node_lyris_intro:
+    'Lyris keeps her voice low enough to make the room lean in. "Aldric sells certainty. I sell escape hatches. If the Crown gets to decide which routes are legal, every hungry town becomes obedient."',
+  story_option_lyris_accept: 'Agree to move goods for the free traders.',
+  story_option_lyris_ask_price: 'Ask what her kind of freedom costs.',
+  story_node_lyris_accept_done:
+    '"Take 2 rope to Fenward," Lyris says. "No banners. No speeches. Quiet routes are the last ones left once officials start naming the others."',
+  story_node_lyris_ask_price_reply:
+    '"Freedom costs inconvenience," Lyris says. "Also courage, spare axle wood, and the willingness to look ordinary while doing something illegal for good reasons."',
+  story_node_lyris_progress:
+    '"Fenward," Lyris reminds you. "The rope matters less than proving the route still exists."',
+  story_node_lyris_after:
+    'Lyris offers the smallest possible nod. "Good. One quiet delivery becomes a habit; a habit becomes a network; a network becomes a problem for men like Aldric."',
+
+  story_node_kess_intro:
+    'Harbormaster Kess studies you, the docks, and the river in that order. "If you are Aldric\'s neat little success story, I can use that. Riversend likes order almost as much as it likes being paid."',
+  story_option_kess_start_tally: 'Offer to run an official timber tally.',
+  story_node_kess_start_tally_done:
+    '"Bring me 2 timber through the proper books," Kess says. "If the Crown wants clean ledgers, I can make them so clean they squeak."',
+  story_node_kess_progress:
+    '"Two timber, entered honestly," Kess says. "The river forgives many things, but not vague manifests."',
+  story_node_kess_after:
+    'Kess signs the docket and finally smiles. "Useful. You might be the rare merchant who understands that paperwork and profit are not natural enemies."',
+
+  story_node_caera_intro:
+    'Caera stands in lantern smoke that smells faintly of herbs and mud. "Lyris says you can keep your mouth shut while your wagon works. That is rarer than courage."',
+  story_option_caera_start_relay: 'Ask how to help her routes.',
+  story_option_caera_moss_secret: 'Ask why Fenward trusts lanterns more than maps.',
+  story_node_caera_start_relay_done:
+    '"Saltmere needs 2 pitch," Caera says. "Hidden paths are still paths, and paths without light become stories told about dead merchants."',
+  story_node_caera_moss_secret_reply:
+    '"Because maps are promises made by strangers," Caera says. "Lanterns are promises kept by people who expect you home."',
+  story_node_caera_progress:
+    '"Saltmere," Caera murmurs. "Pitch first. Then perhaps we speak of roads that do not officially exist."',
+  story_node_caera_after:
+    'Caera presses a bundled upgrade kit into your hands. "Every secret road eventually belongs to whoever can survive it. Now your wagon might."',
+
+  story_node_brennan_intro:
+    'Brennan rubs coal dust from a ledger that will never truly be clean. "The Crown talks quotas, the merchants talk margins, and my miners talk supper. Guess which one I believe."',
+  story_option_brennan_start_union: 'Offer to bring food up the pass.',
+  story_node_brennan_start_union_done:
+    '"Three grain," Brennan says. "Enough to buy patience. When miners stop feeling hungry, they start feeling political."',
+  story_node_brennan_progress:
+    '"Three grain," Brennan repeats. "If you can haul iron, you can haul dinner."',
+  story_node_brennan_after:
+    'Brennan claps the side of a grain sack like it is a loyal dog. "Good. Fed crews work, think, and complain in that order. That is civilized progress."',
+
+  story_node_halas_intro:
+    'Captain Halas smells of brine, tar, and bad patience. "Everyone comes to Saltmere wanting something cheap. The clever ones ask which wind is angry first."',
+  story_option_halas_talk_route: 'Ask what the coast is saying.',
+  story_option_halas_double_agent: 'Mention Veris and the bottle of wine.',
+  story_option_halas_free_keel: 'Ask about the ship he refuses to register.',
+  story_node_halas_route_reply:
+    '"The coast says the Crown wants harbors that kneel," Halas says. "Tides dislike kneeling. So do I."',
+  story_node_halas_double_agent_reply:
+    'Halas takes the wine, checks the seal, and grunts. "All right. You are in the water now. Do not expect dry boots again."',
+  story_node_halas_free_keel_reply:
+    'Halas laughs into his beard. "Her name is Tax Collector. Best joke on the coast. Every official who hears it thinks I am mocking someone else."',
+
+  story_easter_egg_veris_loves_exact_change:
+    'Easter egg: Veris distrusts round numbers. Exact change is how he spots careful liars.',
+  story_easter_egg_caera_counts_boats_by_lanterns:
+    'Easter egg: Caera does not track boats by hull shape; she tracks them by lantern rhythm in the fog.',
+  story_easter_egg_halas_named_his_ship_after_a_tax_collector:
+    'Easter egg: Captain Halas named his ship Tax Collector purely to insult bureaucracy at sea.',
+  story_easter_egg_veris_crown_seal:
+    'Easter egg: Veris still carries an old Crown seal, which means he once worked closer to power than he admits.',
+  story_easter_egg_veris_wore_the_seal:
+    'Easter egg: Veris kept the old seal stitched inside his cuff, half keepsake and half lockpick for old doors.',
+
   // Arrival vignettes — keyed as arrive_{townId}_{season}_{visitBucket}
   // visitBucket: 'first', 'returning', 'regular'
   arrive_ashenford_spring_first:

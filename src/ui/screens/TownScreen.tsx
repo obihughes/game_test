@@ -18,6 +18,7 @@ import { getTownDemandReason, getTownEconomyProfile, TOWNS } from '@/game/world/
 import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
 import { GoodIcon } from '@/ui/icons/GoodIcon.tsx'
 import { MarketBackdrop } from '@/ui/screens/MarketBackdrop.tsx'
+import { NpcPanel } from '@/ui/NpcPanel.tsx'
 import { useGameStore, type CartItem } from '@/store/gameStore.ts'
 import {
   allRecipesForTown,
@@ -32,7 +33,7 @@ import {
 } from '@/game/investments/warehouse.ts'
 import type { GoodId, ProcessingJob, WarehouseFacilityId } from '@/game/core/types.ts'
 
-type MarketTab = 'market' | 'warehouse'
+type MarketTab = 'market' | 'people' | 'warehouse'
 type TradeKind = 'buy' | 'sell'
 type TradeOffer = {
   row: { buy: number; sell: number }
@@ -552,6 +553,13 @@ export function TownScreen() {
         </button>
         <button
           type="button"
+          className={marketTab === 'people' ? 'market-tab market-tab--active' : 'market-tab'}
+          onClick={() => setMarketTab('people')}
+        >
+          👥 People
+        </button>
+        <button
+          type="button"
           className={marketTab === 'warehouse' ? 'market-tab market-tab--active' : 'market-tab'}
           onClick={() => setMarketTab('warehouse')}
         >
@@ -1020,6 +1028,8 @@ export function TownScreen() {
             </div>
           </aside>
         </div>
+      ) : marketTab === 'people' ? (
+        <NpcPanel game={game} />
       ) : (
         /* Warehouse tab */
         <WarehousePanel
