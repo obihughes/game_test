@@ -129,6 +129,13 @@ export const GOODS: Record<GoodId, Good> = {
     dialogFlavorId: 'good_metal_tools',
     icon: '🔨',
   },
+  medicinal_tincture: {
+    id: 'medicinal_tincture',
+    name: 'Medicinal tincture',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_medicinal_tincture',
+    icon: '🧪',
+  },
   grain: {
     id: 'grain',
     name: 'Grain sack',
@@ -177,6 +184,20 @@ export const GOODS: Record<GoodId, Good> = {
     weightPerUnit: 1,
     dialogFlavorId: 'good_cut_glass',
     icon: '💠',
+  },
+  cart_upgrade_kit: {
+    id: 'cart_upgrade_kit',
+    name: 'Cart upgrade kit',
+    weightPerUnit: 2,
+    dialogFlavorId: 'good_cart_upgrade_kit',
+    icon: '🧰',
+  },
+  elixir_of_insight: {
+    id: 'elixir_of_insight',
+    name: 'Elixir of insight',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_elixir_of_insight',
+    icon: '🔮',
   },
 }
 

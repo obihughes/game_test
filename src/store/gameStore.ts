@@ -8,6 +8,7 @@ import {
   type HireRole,
   type TownId,
 } from '@/game/core/index.ts'
+import type { WarehouseFacilityId } from '@/game/core/types.ts'
 import { applyTravelPlan, computeTravelPlan } from '@/game/world/travel.ts'
 import {
   dailyHireCost,
@@ -21,7 +22,9 @@ import { applyQuestProgress } from '@/game/quests/questLogic.ts'
 import { STORAGE_KEY } from '@/game/persistence/constants.ts'
 import {
   buildWarehouse as buildWarehouseAction,
+  buildFacility as buildFacilityAction,
   upgradeWarehouse as upgradeWarehouseAction,
+  upgradeFacility as upgradeFacilityAction,
   depositGoods as depositGoodsAction,
   withdrawGoods as withdrawGoodsAction,
   processRecipe as processRecipeAction,
@@ -29,6 +32,7 @@ import {
   collectJob as collectJobAction,
 } from '@/game/investments/warehouse.ts'
 import { rollEncounter } from '@/game/events/encounters.ts'
+import { useItem as useItemAction } from '@/game/inventory/useItem.ts'
 
 export interface CartItem {
   goodId: GoodId
@@ -60,11 +64,14 @@ export interface GameStore {
   dismissHire: (role: HireRole) => void
   buildWarehouse: (townId: TownId) => void
   upgradeWarehouse: (townId: TownId) => void
+  buildFacility: (townId: TownId, facilityId: WarehouseFacilityId) => void
+  upgradeFacility: (townId: TownId, facilityId: WarehouseFacilityId) => void
   depositGoods: (townId: TownId, goodId: GoodId, qty: number) => void
   withdrawGoods: (townId: TownId, goodId: GoodId, qty: number) => void
   processRecipe: (townId: TownId, recipeId: string) => void
   startTimedJob: (townId: TownId, recipeId: string) => void
   collectJob: (townId: TownId, jobId: string) => void
+  useItem: (goodId: GoodId) => void
   clearError: () => void
   reset: () => void
 }
@@ -109,7 +116,13 @@ export const useGameStore = create<GameStore>()(
           if (plan.routes.length > 0) {
             const resolved = rollEncounter(before, plan.routes[0]!)
             if (resolved) {
-              next = { ...next, ...resolved.state, gold: resolved.state.gold }
+              next = {
+                ...next,
+                gold: resolved.state.gold,
+                inventory: resolved.state.inventory,
+                inventoryCostBasis: resolved.state.inventoryCostBasis,
+                caravan: resolved.state.caravan,
+              }
               encounter = resolved.encounter
             }
           }
@@ -215,6 +228,20 @@ export const useGameStore = create<GameStore>()(
           return { game: r.state, lastError: null }
         }),
 
+      buildFacility: (townId, facilityId) =>
+        set((s) => {
+          const r = buildFacilityAction(s.game, townId, facilityId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
+      upgradeFacility: (townId, facilityId) =>
+        set((s) => {
+          const r = upgradeFacilityAction(s.game, townId, facilityId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
       depositGoods: (townId, goodId, qty) =>
         set((s) => {
           const r = depositGoodsAction(s.game, townId, goodId, qty)
@@ -249,11 +276,18 @@ export const useGameStore = create<GameStore>()(
           if (!r.ok) return { ...s, lastError: r.reason }
           return { game: r.state, lastError: null }
         }),
+
+      useItem: (goodId) =>
+        set((s) => {
+          const r = useItemAction(s.game, goodId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: applyQuestProgress(r.state), lastError: null }
+        }),
     }),
     {
       name: STORAGE_KEY,
       partialize: (state) => ({ game: state.game }),
-      version: 7,
+      version: SAVE_VERSION,
       migrate: (persisted) => {
         const p = persisted as { game?: GameState }
         if (!p.game || typeof p.game.version !== 'number') {
@@ -283,12 +317,26 @@ export const useGameStore = create<GameStore>()(
         if (!('lastEncounter' in (g as object))) {
           g = { ...g, lastEncounter: null, version: SAVE_VERSION }
         }
-        // Ensure all warehouses have activeJobs array
+        if (!g.caravan || typeof g.caravan !== 'object') {
+          return { game: createInitialState(), lastError: null }
+        }
+        const caravanBuffs =
+          g.caravan.buffs && typeof g.caravan.buffs === 'object' ? g.caravan.buffs : {}
+        const bonusCapacity = typeof g.caravan.bonusCapacity === 'number' ? g.caravan.bonusCapacity : 0
+        g = {
+          ...g,
+          caravan: { ...g.caravan, buffs: caravanBuffs, bonusCapacity },
+          version: SAVE_VERSION,
+        }
+        // Ensure all warehouses have activeJobs array and facilities map
         const updatedWarehouses = { ...g.townWarehouses }
         for (const townId of Object.keys(updatedWarehouses)) {
           const wh = updatedWarehouses[townId]
-          if (wh && !Array.isArray(wh.activeJobs)) {
-            updatedWarehouses[townId] = { ...wh, activeJobs: [] }
+          if (!wh) continue
+          updatedWarehouses[townId] = {
+            ...wh,
+            activeJobs: Array.isArray(wh.activeJobs) ? wh.activeJobs : [],
+            facilities: wh.facilities && typeof wh.facilities === 'object' ? wh.facilities : {},
           }
         }
         g = { ...g, townWarehouses: updatedWarehouses, version: SAVE_VERSION }

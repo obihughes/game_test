@@ -1,6 +1,7 @@
 import type { GameState, TravelEncounter, TownId } from '../core/types.ts'
 import type { Route } from '../world/routes.ts'
 import { GOOD_IDS, GOODS } from '../economy/goods.ts'
+import { hasActiveBuff } from '../inventory/useItem.ts'
 
 export interface EncounterDef {
   id: string
@@ -31,6 +32,23 @@ function pickCargoGood(state: GameState, seed: number): string | null {
   return carried[idx] ?? null
 }
 
+function removeCargoWithCostBasis(state: GameState, goodId: string, qty: number): Pick<
+  GameState,
+  'inventory' | 'inventoryCostBasis'
+> {
+  const have = state.inventory[goodId] ?? 0
+  const basis = state.inventoryCostBasis[goodId] ?? 0
+  const nextQty = Math.max(0, have - qty)
+  const consumedBasis = have > 0 ? (basis * Math.min(qty, have)) / have : 0
+  const inventory = { ...state.inventory, [goodId]: nextQty }
+  const inventoryCostBasis = { ...state.inventoryCostBasis }
+  if (nextQty <= 0) delete inventory[goodId]
+  const remainingBasis = basis - consumedBasis
+  if (nextQty <= 0 || remainingBasis <= 0) delete inventoryCostBasis[goodId]
+  else inventoryCostBasis[goodId] = remainingBasis
+  return { inventory, inventoryCostBasis }
+}
+
 const ENCOUNTER_DEFS: EncounterDef[] = [
   {
     id: 'road_merchant_offer',
@@ -43,10 +61,9 @@ const ENCOUNTER_DEFS: EncounterDef[] = [
       const good = GOODS[goodId]!
       const bonus = Math.floor(seededRand(seed * 3) * 6) + 4
       const newGold = state.gold + bonus
-      const newInv = { ...state.inventory, [goodId]: (state.inventory[goodId] ?? 0) - 1 }
-      if (newInv[goodId] === 0) delete newInv[goodId]
+      const consumed = removeCargoWithCostBasis(state, goodId, 1)
       return {
-        state: { ...state, gold: newGold, inventory: newInv },
+        state: { ...state, gold: newGold, inventory: consumed.inventory, inventoryCostBasis: consumed.inventoryCostBasis },
         encounter: {
           id: 'road_merchant_offer',
           text: `A travelling merchant spots your wagon and offers a fair price for a unit of ${good.name}. You accept — coin in hand is better than a distant market.`,
@@ -218,7 +235,11 @@ const ENCOUNTER_DEFS: EncounterDef[] = [
       const qty = Math.floor(seededRand(seed * 29) * 2) + 1
       const newInv = { ...state.inventory, [goodId]: (state.inventory[goodId] ?? 0) + qty }
       return {
-        state: { ...state, inventory: newInv },
+        state: {
+          ...state,
+          inventory: newInv,
+          inventoryCostBasis: { ...state.inventoryCostBasis, [goodId]: state.inventoryCostBasis[goodId] ?? 0 },
+        },
         encounter: {
           id: 'abandoned_cart',
           text: `An abandoned cart sits half in the ditch, wheel broken, owner long gone. You load what's salvageable — ${qty}× ${good.name} — and move on.`,
@@ -259,6 +280,8 @@ const ENCOUNTER_DEFS: EncounterDef[] = [
   },
 ]
 
+const COSTLY_ENCOUNTERS = new Set(['bandit_toll', 'broken_wheel', 'crown_inspector'])
+
 function emptyRoadsEncounter(state: GameState, seed: number): ResolvedEncounter {
   const lines = [
     'The road is quiet today — just the creak of the wagon and the sound of hooves on packed earth.',
@@ -281,9 +304,12 @@ export function rollEncounter(state: GameState, route: Route): ResolvedEncounter
   // Deterministic seed from day + route so reloading gives same result
   const seed = state.day * 1000 + route.from.charCodeAt(0) * 100 + route.to.charCodeAt(0)
   const roll = seededRand(seed)
+  const alertness = hasActiveBuff(state, 'alertness')
+  const insight = hasActiveBuff(state, 'insight')
+  const encounterChance = insight ? 0.18 : alertness ? 0.28 : 0.4
 
   // ~40% chance of an encounter per leg
-  if (roll > 0.4) return null
+  if (roll > encounterChance) return null
 
   // Filter eligible encounters for this route
   const eligible = ENCOUNTER_DEFS.filter((def) => {
@@ -297,6 +323,11 @@ export function rollEncounter(state: GameState, route: Route): ResolvedEncounter
   for (const def of eligible) {
     pick -= def.weight
     if (pick <= 0) {
+      if ((alertness || insight) && COSTLY_ENCOUNTERS.has(def.id)) {
+        const avoidRoll = seededRand(seed * 5)
+        const avoidChance = insight ? 0.8 : 0.55
+        if (avoidRoll <= avoidChance) return null
+      }
       return def.resolve(state, route, seed)
     }
   }

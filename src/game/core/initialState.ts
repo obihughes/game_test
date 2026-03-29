@@ -1,6 +1,6 @@
 import type { GameState } from './types.ts'
 
-export const SAVE_VERSION = 7
+export const SAVE_VERSION = 8
 
 export function createInitialState(): GameState {
   return {
@@ -16,6 +16,8 @@ export function createInitialState(): GameState {
       cartTier: 0,
       horses: 0,
       hires: { guard: 0, scout: 0 },
+      buffs: {},
+      bonusCapacity: 0,
     },
     questFlags: {},
     activeQuestId: 'intro_travel',

@@ -23,6 +23,33 @@ export function migrateState(raw: unknown): GameState {
   if (typeof g.tradeGoldEarned !== 'number') {
     g = { ...g, tradeGoldEarned: 0, version: SAVE_VERSION }
   }
+  if (!g.caravan || typeof g.caravan !== 'object') {
+    return createInitialState()
+  }
+  const caravanBuffs =
+    g.caravan.buffs && typeof g.caravan.buffs === 'object' ? g.caravan.buffs : {}
+  const bonusCapacity = typeof g.caravan.bonusCapacity === 'number' ? g.caravan.bonusCapacity : 0
+  g = {
+    ...g,
+    caravan: { ...g.caravan, buffs: caravanBuffs, bonusCapacity },
+    townWarehouses:
+      g.townWarehouses && typeof g.townWarehouses === 'object'
+        ? Object.fromEntries(
+            Object.entries(g.townWarehouses).map(([townId, wh]) => [
+              townId,
+              wh
+                ? {
+                    ...wh,
+                    facilities:
+                      wh.facilities && typeof wh.facilities === 'object' ? wh.facilities : {},
+                    activeJobs: Array.isArray(wh.activeJobs) ? wh.activeJobs : [],
+                  }
+                : wh,
+            ]),
+          )
+        : {},
+    version: SAVE_VERSION,
+  }
   return g
 }
 

@@ -921,9 +921,46 @@ button.trade-row__btn.small {
   font-size: 0.85rem;
 }
 
+.caravan-cargo-row__use {
+  margin-left: auto;
+}
+
 .caravan-cargo-empty {
   margin: 0 0 1rem;
   font-size: 0.92rem;
+}
+
+.caravan-buffs {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #3a3026;
+  border-radius: 8px;
+  background: rgba(16, 12, 8, 0.5);
+}
+
+.caravan-buffs__title {
+  margin: 0 0 0.6rem;
+  color: #c9a66b;
+}
+
+.caravan-buffs__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.caravan-buffs__item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.caravan-buffs__expiry {
+  margin-left: auto;
 }
 
 .caravan-actions {
@@ -1614,6 +1651,88 @@ button.trade-row__btn.small {
   padding: 0.25rem 0.6rem;
 }
 
+.warehouse-facilities {
+  margin-bottom: 1.25rem;
+}
+
+.warehouse-facilities__heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+.warehouse-facilities__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.facility-card {
+  border: 1px solid #3a3026;
+  border-radius: 8px;
+  background: rgba(16, 12, 8, 0.58);
+  padding: 0.8rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.facility-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.facility-card__title {
+  color: #e8dcc8;
+}
+
+.facility-card__desc {
+  margin: 0.25rem 0 0;
+  line-height: 1.45;
+}
+
+.facility-card__level {
+  align-self: flex-start;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #5c4a36;
+  white-space: nowrap;
+}
+
+.facility-card__level--built {
+  color: #9fd88a;
+  background: rgba(50, 100, 40, 0.2);
+  border-color: #5a8a4a55;
+}
+
+.facility-card__level--locked {
+  color: #c97a6a;
+  background: rgba(100, 40, 40, 0.2);
+  border-color: #8a4a4a55;
+}
+
+.facility-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+}
+
+.facility-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.facility-card__maxed {
+  font-style: italic;
+}
+
 .warehouse-columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1699,6 +1818,12 @@ button.trade-row__btn.small {
   font-style: italic;
 }
 
+.recipe-row__requirements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
 .recipe-row__ingredients {
   display: flex;
   flex-wrap: wrap;
@@ -1757,6 +1882,10 @@ button.trade-row__btn.small {
 .recipe-row__btn:hover:not(:disabled) {
   background: #4a4a3a;
   border-color: #8a8a6a;
+}
+
+.recipe-row--locked {
+  opacity: 0.78;
 }
 
 /* ── Cart panel ──────────────────────────────────────────────────────────── */

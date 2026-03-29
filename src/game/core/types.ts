@@ -3,11 +3,20 @@ export type GoodId = string
 export type MerchantId = string
 
 export type HireRole = 'guard' | 'scout'
+export type WarehouseFacilityId = 'smokehouse' | 'workshop' | 'stillhouse' | 'kiln'
+export type CaravanBuffId = 'well_fed' | 'high_morale' | 'alertness' | 'insight'
+
+export interface CaravanBuffState {
+  expiresOnDay: number
+  sourceGoodId: GoodId
+}
 
 export interface CaravanState {
   cartTier: number
   horses: number
   hires: Record<HireRole, number>
+  buffs: Partial<Record<CaravanBuffId, CaravanBuffState>>
+  bonusCapacity: number
 }
 
 /** A timed crafting job running in a warehouse. */
@@ -24,6 +33,7 @@ export interface ProcessingJob {
 export interface WarehouseState {
   level: 1 | 2
   stored: Partial<Record<GoodId, number>>
+  facilities: Partial<Record<WarehouseFacilityId, number>>
   /** Active timed crafting jobs. */
   activeJobs: ProcessingJob[]
 }

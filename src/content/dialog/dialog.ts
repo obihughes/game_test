@@ -34,6 +34,7 @@ export const DIALOG: Record<string, string> = {
   good_fen_spice: 'Pungent enough to wake the dead — or at least the cook.',
   good_coal: 'Black rock that burns hot and leaves everything it touches grey.',
   good_metal_tools: 'Hammers, chisels, and blades — the kind of weight that earns its keep.',
+  good_medicinal_tincture: 'A bitter bottle steeped long enough to make a traveller stand straighter.',
   good_grain: 'Sacked and sealed; whoever controls the grain controls the winter.',
   good_timber: 'Heavy enough to make your axle groan, worth it when the docks need planking.',
   good_pitch: 'Thick, black, and stubborn — ships drink it, roads hate it.',
@@ -41,6 +42,8 @@ export const DIALOG: Record<string, string> = {
   good_polished_amber: 'Buffed until it glows like trapped sunlight — the crown clerks weigh it twice.',
   good_seasoned_spice: 'Salt and fen spice married in a jar; inland cooks pay dearly for the flavour.',
   good_cut_glass: 'Obsidian scored and split by mountain craftsmen — each pane catches the light differently.',
+  good_cart_upgrade_kit: 'Braces, bolts, and fresh rigging bundled for a wagon that plans to survive the next bad road.',
+  good_elixir_of_insight: 'A clear draught that sharpens the road ahead and makes a trader trust the right instincts.',
 
   // Arrival vignettes — keyed as arrive_{townId}_{season}_{visitBucket}
   // visitBucket: 'first', 'returning', 'regular'

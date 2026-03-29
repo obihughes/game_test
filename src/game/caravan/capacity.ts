@@ -16,7 +16,7 @@ export function cargoWeight(state: GameState): number {
 
 export function maxCargoWeight(state: GameState): number {
   const base = tierConfig(state.caravan.cartTier).capacity
-  return base + capacityBonusFromHorses(state.caravan.horses)
+  return base + capacityBonusFromHorses(state.caravan.horses) + state.caravan.bonusCapacity
 }
 
 export function spareCapacity(state: GameState): number {

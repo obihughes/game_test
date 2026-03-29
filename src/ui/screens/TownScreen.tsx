@@ -20,13 +20,17 @@ import { GoodIcon } from '@/ui/icons/GoodIcon.tsx'
 import { MarketBackdrop } from '@/ui/screens/MarketBackdrop.tsx'
 import { useGameStore, type CartItem } from '@/store/gameStore.ts'
 import {
+  allRecipesForTown,
+  getFacilityLevel,
   WAREHOUSE_BUILD_COST,
+  WAREHOUSE_FACILITIES,
   WAREHOUSE_UPGRADE_COST,
-  recipesForTown,
   getWarehouseCapacity,
   getWarehouseUsed,
+  isRecipeUnlocked,
+  type ProcessingRecipe,
 } from '@/game/investments/warehouse.ts'
-import type { GoodId, ProcessingJob } from '@/game/core/types.ts'
+import type { GoodId, ProcessingJob, WarehouseFacilityId } from '@/game/core/types.ts'
 
 type MarketTab = 'market' | 'warehouse'
 type TradeKind = 'buy' | 'sell'
@@ -67,6 +71,8 @@ export function TownScreen() {
   const clearError = useGameStore((s) => s.clearError)
   const buildWarehouse = useGameStore((s) => s.buildWarehouse)
   const upgradeWarehouse = useGameStore((s) => s.upgradeWarehouse)
+  const buildFacility = useGameStore((s) => s.buildFacility)
+  const upgradeFacility = useGameStore((s) => s.upgradeFacility)
   const depositGoods = useGameStore((s) => s.depositGoods)
   const withdrawGoods = useGameStore((s) => s.withdrawGoods)
   const processRecipe = useGameStore((s) => s.processRecipe)
@@ -1024,6 +1030,8 @@ export function TownScreen() {
           setWhQtyFor={setWhQtyFor}
           onBuild={() => buildWarehouse(game.location)}
           onUpgrade={() => upgradeWarehouse(game.location)}
+          onBuildFacility={(facilityId) => buildFacility(game.location, facilityId)}
+          onUpgradeFacility={(facilityId) => upgradeFacility(game.location, facilityId)}
           onDeposit={(goodId, qty) => depositGoods(game.location, goodId, qty)}
           onWithdraw={(goodId, qty) => withdrawGoods(game.location, goodId, qty)}
           onProcess={(recipeId) => processRecipe(game.location, recipeId)}
@@ -1197,11 +1205,19 @@ interface WarehousePanelProps {
   setWhQtyFor: (key: string, val: number) => void
   onBuild: () => void
   onUpgrade: () => void
+  onBuildFacility: (facilityId: WarehouseFacilityId) => void
+  onUpgradeFacility: (facilityId: WarehouseFacilityId) => void
   onDeposit: (goodId: GoodId, qty: number) => void
   onWithdraw: (goodId: GoodId, qty: number) => void
   onProcess: (recipeId: string) => void
   onStartJob: (recipeId: string) => void
   onCollectJob: (jobId: string) => void
+}
+
+function facilityRequirementText(recipe: ProcessingRecipe): string | null {
+  if (!recipe.facilityRequired) return null
+  const facility = WAREHOUSE_FACILITIES[recipe.facilityRequired]
+  return `${facility.label} Lv${recipe.facilityLevel ?? 1}`
 }
 
 function WarehousePanel({
@@ -1211,6 +1227,8 @@ function WarehousePanel({
   setWhQtyFor,
   onBuild,
   onUpgrade,
+  onBuildFacility,
+  onUpgradeFacility,
   onDeposit,
   onWithdraw,
   onProcess,
@@ -1249,10 +1267,11 @@ function WarehousePanel({
   const fillPct = Math.min(100, (used / cap) * 100)
   const storedGoods = GOOD_IDS.filter((id) => (warehouse.stored[id] ?? 0) > 0)
   const cargoGoods = GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0)
-  const townRecipes = recipesForTown(game.location)
+  const townRecipes = allRecipesForTown(game.location)
   const instantRecipes = townRecipes.filter((r) => r.daysRequired === 0)
   const timedRecipes = townRecipes.filter((r) => r.daysRequired > 0)
   const activeJobs: ProcessingJob[] = warehouse.activeJobs ?? []
+  const facilityEntries = Object.values(WAREHOUSE_FACILITIES)
 
   return (
     <div className="warehouse-panel">
@@ -1289,6 +1308,72 @@ function WarehousePanel({
               }}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="warehouse-facilities">
+        <div className="warehouse-facilities__heading">
+          <h4 className="warehouse-col__title">Facilities</h4>
+          <span className="muted small">
+            Build focused work areas to unlock deeper recipe chains.
+          </span>
+        </div>
+        <div className="warehouse-facilities__grid">
+          {facilityEntries.map((facility) => {
+            const level = getFacilityLevel(warehouse, facility.id)
+            const buildableRecipes = townRecipes.filter((recipe) => recipe.facilityRequired === facility.id)
+            const canBuild = level === 0 && game.gold >= facility.buildCost
+            const canUpgrade =
+              level === 1 && warehouse.level >= 2 && game.gold >= facility.upgradeCost
+            return (
+              <article key={facility.id} className="facility-card">
+                <div className="facility-card__header">
+                  <div>
+                    <strong className="facility-card__title">{facility.label}</strong>
+                    <p className="facility-card__desc muted small">{facility.description}</p>
+                  </div>
+                  <span className={`facility-card__level facility-card__level--${level > 0 ? 'built' : 'locked'}`}>
+                    {level > 0 ? `Lv${level}` : 'Not built'}
+                  </span>
+                </div>
+                <div className="facility-card__meta muted small">
+                  <span>{buildableRecipes.length} local recipe{buildableRecipes.length === 1 ? '' : 's'}</span>
+                  <span>Build {facility.buildCost}g</span>
+                  <span>Upgrade {facility.upgradeCost}g</span>
+                </div>
+                <div className="facility-card__actions">
+                  {level === 0 ? (
+                    <button
+                      type="button"
+                      className="trade-row__btn trade-row__btn--buy small"
+                      disabled={!canBuild}
+                      onClick={() => onBuildFacility(facility.id)}
+                    >
+                      Build
+                    </button>
+                  ) : level === 1 ? (
+                    <button
+                      type="button"
+                      className="trade-row__btn trade-row__btn--sell small"
+                      disabled={!canUpgrade}
+                      onClick={() => onUpgradeFacility(facility.id)}
+                      title={
+                        warehouse.level < 2
+                          ? 'Upgrade the warehouse to Level 2 first'
+                          : game.gold < facility.upgradeCost
+                            ? 'Not enough gold'
+                            : ''
+                      }
+                    >
+                      Upgrade to Lv2
+                    </button>
+                  ) : (
+                    <span className="facility-card__maxed muted small">Fully upgraded</span>
+                  )}
+                </div>
+              </article>
+            )
+          })}
         </div>
       </div>
 
@@ -1437,14 +1522,32 @@ function WarehousePanel({
           <ul className="recipe-list">
             {instantRecipes.map((recipe) => {
               const canAfford = game.gold >= recipe.goldCost
+              const unlocked = isRecipeUnlocked(warehouse, recipe)
+              const requirementText = facilityRequirementText(recipe)
               const hasInputs = recipe.inputs.every(
                 (inp) => (game.inventory[inp.goodId] ?? 0) >= inp.qty,
               )
               return (
-                <li key={recipe.id} className="recipe-row">
+                <li
+                  key={recipe.id}
+                  className={`recipe-row${unlocked ? '' : ' recipe-row--locked'}`}
+                >
                   <div className="recipe-row__info">
                     <strong className="recipe-row__label">{recipe.label}</strong>
                     <span className="recipe-row__desc muted small">{recipe.description}</span>
+                    {requirementText ? (
+                      <div className="recipe-row__requirements">
+                        <span
+                          className={
+                            unlocked
+                              ? 'recipe-ingredient recipe-ingredient--have'
+                              : 'recipe-ingredient recipe-ingredient--missing'
+                          }
+                        >
+                          Requires {requirementText}
+                        </span>
+                      </div>
+                    ) : null}
                     <div className="recipe-row__ingredients">
                       {recipe.inputs.map((inp) => (
                         <span
@@ -1470,9 +1573,17 @@ function WarehousePanel({
                   <button
                     type="button"
                     className="recipe-row__btn"
-                    disabled={!canAfford || !hasInputs}
+                    disabled={!unlocked || !canAfford || !hasInputs}
                     onClick={() => onProcess(recipe.id)}
-                    title={!hasInputs ? 'Missing ingredients in cargo' : !canAfford ? 'Not enough gold' : ''}
+                    title={
+                      !unlocked
+                        ? `${requirementText} not built`
+                        : !hasInputs
+                          ? 'Missing ingredients in cargo'
+                          : !canAfford
+                            ? 'Not enough gold'
+                            : ''
+                    }
                   >
                     Process
                   </button>
@@ -1492,14 +1603,32 @@ function WarehousePanel({
           <ul className="recipe-list">
             {timedRecipes.map((recipe) => {
               const canAfford = game.gold >= recipe.goldCost
+              const unlocked = isRecipeUnlocked(warehouse, recipe)
+              const requirementText = facilityRequirementText(recipe)
               const hasInputs = recipe.inputs.every(
                 (inp) => (game.inventory[inp.goodId] ?? 0) >= inp.qty,
               )
               return (
-                <li key={recipe.id} className="recipe-row recipe-row--timed">
+                <li
+                  key={recipe.id}
+                  className={`recipe-row recipe-row--timed${unlocked ? '' : ' recipe-row--locked'}`}
+                >
                   <div className="recipe-row__info">
                     <strong className="recipe-row__label">{recipe.label}</strong>
                     <span className="recipe-row__desc muted small">{recipe.description}</span>
+                    {requirementText ? (
+                      <div className="recipe-row__requirements">
+                        <span
+                          className={
+                            unlocked
+                              ? 'recipe-ingredient recipe-ingredient--have'
+                              : 'recipe-ingredient recipe-ingredient--missing'
+                          }
+                        >
+                          Requires {requirementText}
+                        </span>
+                      </div>
+                    ) : null}
                     <div className="recipe-row__ingredients">
                       {recipe.inputs.map((inp) => (
                         <span
@@ -1528,9 +1657,17 @@ function WarehousePanel({
                   <button
                     type="button"
                     className="recipe-row__btn recipe-row__btn--start"
-                    disabled={!canAfford || !hasInputs}
+                    disabled={!unlocked || !canAfford || !hasInputs}
                     onClick={() => onStartJob(recipe.id)}
-                    title={!hasInputs ? 'Missing ingredients in cargo' : !canAfford ? 'Not enough gold' : `Takes ${recipe.daysRequired} days`}
+                    title={
+                      !unlocked
+                        ? `${requirementText} not built`
+                        : !hasInputs
+                          ? 'Missing ingredients in cargo'
+                          : !canAfford
+                            ? 'Not enough gold'
+                            : `Takes ${recipe.daysRequired} days`
+                    }
                   >
                     Start job
                   </button>

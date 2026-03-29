@@ -6,6 +6,7 @@ import { GOODS, GOOD_IDS } from '@/game/economy/index.ts'
 import { GoodIcon } from '@/ui/icons/GoodIcon.tsx'
 import { useGameStore } from '@/store/gameStore.ts'
 import type { HireRole } from '@/game/core/types.ts'
+import { getActiveBuffs, getUsableItem } from '@/game/inventory/useItem.ts'
 
 const hireRoles: HireRole[] = ['guard', 'scout']
 
@@ -15,6 +16,7 @@ export function CaravanScreen() {
   const purchaseHorse = useGameStore((s) => s.purchaseHorse)
   const hire = useGameStore((s) => s.hire)
   const dismissHire = useGameStore((s) => s.dismissHire)
+  const useItem = useGameStore((s) => s.useItem)
   const lastError = useGameStore((s) => s.lastError)
   const clearError = useGameStore((s) => s.clearError)
 
@@ -24,6 +26,7 @@ export function CaravanScreen() {
   const used = cargoWeight(game)
   const horseCap = maxHorsesForCart(game.caravan.cartTier)
   const cargoLines = GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0)
+  const activeBuffs = getActiveBuffs(game)
 
   const capPct = cap > 0 ? Math.min(100, Math.round((used / cap) * 100)) : 0
 
@@ -34,6 +37,9 @@ export function CaravanScreen() {
         <p className="muted">
           Wagon: <strong style={{ color: '#e8dcc8' }}>{tier.label}</strong> · {game.caravan.horses} horse{game.caravan.horses !== 1 ? 's' : ''}
         </p>
+        {game.caravan.bonusCapacity > 0 ? (
+          <p className="muted small">Permanent wagon fittings: +{game.caravan.bonusCapacity} cargo capacity</p>
+        ) : null}
       </header>
 
       {/* Capacity bar */}
@@ -62,6 +68,7 @@ export function CaravanScreen() {
             {cargoLines.map((id) => {
               const g = GOODS[id]!
               const n = game.inventory[id] ?? 0
+              const usable = getUsableItem(id)
               return (
                 <li key={id} className="caravan-cargo-row">
                   <GoodIcon goodId={id} size={20} className="caravan-cargo-row__icon" />
@@ -69,6 +76,16 @@ export function CaravanScreen() {
                   <span className="caravan-cargo-row__qty muted small">
                     ×{n} · {g.weightPerUnit * n} wt
                   </span>
+                  {usable ? (
+                    <button
+                      type="button"
+                      className="ghost small caravan-cargo-row__use"
+                      onClick={() => useItem(id)}
+                      title={`${usable.label}: ${usable.effectSummary}`}
+                    >
+                      Use
+                    </button>
+                  ) : null}
                 </li>
               )
             })}
@@ -77,6 +94,20 @@ export function CaravanScreen() {
       ) : (
         <p className="muted caravan-cargo-empty">Your wagon is empty — buy goods at the Market.</p>
       )}
+      {activeBuffs.length > 0 ? (
+        <div className="caravan-buffs">
+          <h3 className="caravan-buffs__title">Active buffs</h3>
+          <ul className="caravan-buffs__list">
+            {activeBuffs.map((buff) => (
+              <li key={buff.id} className="caravan-buffs__item">
+                <strong>{buff.label}</strong>
+                <span className="muted small">{buff.summary}</span>
+                <span className="caravan-buffs__expiry muted small">Until day {buff.expiresOnDay}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
       {lastError ? (
         <p className="error" role="alert">
           {lastError}{' '}
