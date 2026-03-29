@@ -2041,3 +2041,316 @@ button.trade-row__btn.small {
     grid-column: auto;
   }
 }
+
+/* ─── Travel Animation Overlay ─────────────────────────────────────────────── */
+
+.travel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 7, 4, 0.92);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.travel-overlay--enter,
+.travel-overlay--travel {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.travel-overlay--exit {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+
+.travel-overlay__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2.5rem 3rem;
+  background: #1a1410;
+  border: 1px solid #5c4a36;
+  border-radius: 8px;
+  min-width: 320px;
+  max-width: 480px;
+  box-shadow: 0 0 60px rgba(0,0,0,0.8);
+}
+
+.travel-overlay__route {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.travel-overlay__route-step {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.travel-overlay__route-arrow {
+  color: #5c4a36;
+  font-size: 0.8rem;
+}
+
+.travel-overlay__route-town {
+  color: #9a8a78;
+}
+
+.travel-overlay__route-dest {
+  color: #c9a66b;
+  font-weight: 700;
+}
+
+.travel-overlay__caravan-track {
+  position: relative;
+  width: 260px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+}
+
+.travel-overlay__track-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  background: repeating-linear-gradient(
+    to right,
+    #5c4a36 0px,
+    #5c4a36 8px,
+    transparent 8px,
+    transparent 16px
+  );
+}
+
+.travel-overlay__caravan {
+  position: absolute;
+  font-size: 1.6rem;
+  animation: caravanMove 2.2s ease-in-out forwards;
+  filter: drop-shadow(0 0 6px rgba(201, 166, 107, 0.5));
+}
+
+@keyframes caravanMove {
+  0%   { left: 0; transform: scaleX(1); }
+  100% { left: calc(100% - 1.6rem); transform: scaleX(1); }
+}
+
+.travel-overlay__days {
+  font-size: 0.85rem;
+  color: #9a8a78;
+  letter-spacing: 0.04em;
+  min-height: 1.2em;
+}
+
+/* ─── Encounter Modal ───────────────────────────────────────────────────────── */
+
+.encounter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 7, 4, 0.75);
+  animation: fadeIn 0.25s ease;
+}
+
+.encounter-dialog {
+  background: #1a1410;
+  border: 1px solid #5c4a36;
+  border-radius: 8px;
+  padding: 1.75rem 2rem;
+  max-width: 440px;
+  width: 90%;
+  box-shadow: 0 0 40px rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.encounter-dialog__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.encounter-dialog__icon {
+  font-size: 1.2rem;
+}
+
+.encounter-dialog__title {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9a8a78;
+}
+
+.encounter-dialog__text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #e8dcc8;
+  margin: 0;
+}
+
+.encounter-dialog__effect {
+  font-size: 0.85rem;
+  color: #c9a66b;
+  background: rgba(201, 166, 107, 0.08);
+  border-left: 2px solid #c9a66b;
+  padding: 0.4rem 0.75rem;
+  border-radius: 0 4px 4px 0;
+  margin: 0;
+}
+
+.encounter-dialog__btn {
+  align-self: flex-end;
+  background: #2a2218;
+  border: 1px solid #5c4a36;
+  color: #c9a66b;
+  padding: 0.5rem 1.25rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.encounter-dialog__btn:hover {
+  background: #3a3028;
+  border-color: #c9a66b;
+}
+
+/* ─── Arrival Vignette ──────────────────────────────────────────────────────── */
+
+.arrival-vignette {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  background: rgba(201, 166, 107, 0.06);
+  border-left: 2px solid #5c4a36;
+  padding: 0.6rem 0.9rem;
+  border-radius: 0 4px 4px 0;
+  margin-top: 0.5rem;
+  animation: fadeIn 0.4s ease;
+}
+
+.arrival-vignette__text {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #9a8a78;
+  font-style: italic;
+  flex: 1;
+}
+
+.arrival-vignette__dismiss {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #5c4a36;
+  padding: 0;
+  line-height: 1;
+  margin-top: 0.1rem;
+}
+
+.arrival-vignette__dismiss:hover {
+  color: #9a8a78;
+}
+
+/* ─── Timed job progress ────────────────────────────────────────────────────── */
+
+.recipe-row--timed {
+  border-left: 2px solid #5c7a9a;
+}
+
+.recipe-row--job {
+  border-left: 2px solid #5c4a36;
+}
+
+.recipe-row--ready {
+  border-left-color: #7cba6a;
+}
+
+.recipe-job-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+
+.recipe-job-progress__bar {
+  height: 6px;
+  background: #2a2218;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 100%;
+  max-width: 200px;
+}
+
+.recipe-job-progress__fill {
+  height: 100%;
+  background: #c9a66b;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.recipe-row--ready .recipe-job-progress__fill {
+  background: #7cba6a;
+}
+
+.recipe-job-progress__label {
+  font-size: 0.78rem;
+}
+
+.recipe-row__btn--collect {
+  background: #2a4a2a;
+  border-color: #7cba6a;
+  color: #7cba6a;
+}
+
+.recipe-row__btn--collect:hover:not(:disabled) {
+  background: #3a5a3a;
+}
+
+.recipe-row__btn--start {
+  background: #1e2a38;
+  border-color: #5c7a9a;
+  color: #8ab4d4;
+}
+
+.recipe-row__btn--start:hover:not(:disabled) {
+  background: #263040;
+}
+
+.recipe-ingredient--time {
+  background: rgba(92, 122, 154, 0.15);
+  color: #8ab4d4;
+  border-color: #5c7a9a;
+}
+
+.recipe-town-badge {
+  font-size: 0.72rem;
+  font-weight: 400;
+  background: rgba(92, 122, 154, 0.15);
+  color: #8ab4d4;
+  border: 1px solid #5c7a9a;
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

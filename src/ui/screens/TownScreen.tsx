@@ -10,9 +10,9 @@ import {
 } from '@/game/economy/index.ts'
 import { isLocalDeal } from '@/game/economy/merchants.ts'
 import { getPriceTrendDirection, trendArrow, getPriceTrend } from '@/game/economy/priceHistory.ts'
-import { getSeasonModifierLabel } from '@/game/world/seasons.ts'
+import { getSeasonModifierLabel, getSeason } from '@/game/world/seasons.ts'
 import { getDialog } from '@/content/dialog/dialog.ts'
-import { getLocationPanelBackground, getLocationStory } from '@/content/locationContent.ts'
+import { getArrivalVignette, getLocationPanelBackground, getLocationStory } from '@/content/locationContent.ts'
 import { spareCapacity, cargoWeight, maxCargoWeight } from '@/game/caravan/capacity.ts'
 import { getTownDemandReason, getTownEconomyProfile, TOWNS } from '@/game/world/index.ts'
 import { LocationPixelIcon } from '@/ui/icons/LocationPixelIcon.tsx'
@@ -22,11 +22,11 @@ import { useGameStore, type CartItem } from '@/store/gameStore.ts'
 import {
   WAREHOUSE_BUILD_COST,
   WAREHOUSE_UPGRADE_COST,
-  PROCESSING_RECIPES,
+  recipesForTown,
   getWarehouseCapacity,
   getWarehouseUsed,
 } from '@/game/investments/warehouse.ts'
-import type { GoodId } from '@/game/core/types.ts'
+import type { GoodId, ProcessingJob } from '@/game/core/types.ts'
 
 type MarketTab = 'market' | 'warehouse'
 type TradeKind = 'buy' | 'sell'
@@ -70,6 +70,8 @@ export function TownScreen() {
   const depositGoods = useGameStore((s) => s.depositGoods)
   const withdrawGoods = useGameStore((s) => s.withdrawGoods)
   const processRecipe = useGameStore((s) => s.processRecipe)
+  const startTimedJob = useGameStore((s) => s.startTimedJob)
+  const collectJob = useGameStore((s) => s.collectJob)
 
   const [marketTab, setMarketTab] = useState<MarketTab>('market')
   const [showLore, setShowLore] = useState(false)
@@ -130,6 +132,23 @@ export function TownScreen() {
   const marketBackdrop = useMemo(() => getLocationPanelBackground(game.location), [game.location])
   const economyProfile = useMemo(() => getTownEconomyProfile(game.location), [game.location])
   const warehouse = game.townWarehouses[game.location]
+
+  const arrivalVignette = useMemo(() => {
+    const visits = game.townVisits?.[game.location] ?? 0
+    const season = getSeason(game.day)
+    return getArrivalVignette(game.location, season, visits)
+  }, [game.location, game.day, game.townVisits])
+
+  const [vignetteDismissed, setVignetteDismissed] = useState(false)
+  const [vignetteLocation, setVignetteLocation] = useState(game.location)
+
+  // Reset dismissed state when location changes
+  useEffect(() => {
+    if (game.location !== vignetteLocation) {
+      setVignetteDismissed(false)
+      setVignetteLocation(game.location)
+    }
+  }, [game.location, vignetteLocation])
 
   const cargoGoods = useMemo(
     () => GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0),
@@ -500,6 +519,20 @@ export function TownScreen() {
             </button>
           </p>
         )}
+
+        {!vignetteDismissed && arrivalVignette ? (
+          <div className="arrival-vignette" role="status">
+            <span className="arrival-vignette__text">{arrivalVignette}</span>
+            <button
+              type="button"
+              className="arrival-vignette__dismiss linkish"
+              onClick={() => setVignetteDismissed(true)}
+              aria-label="Dismiss arrival note"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
       </div>
 
       {/* Tab switcher */}
@@ -994,6 +1027,8 @@ export function TownScreen() {
           onDeposit={(goodId, qty) => depositGoods(game.location, goodId, qty)}
           onWithdraw={(goodId, qty) => withdrawGoods(game.location, goodId, qty)}
           onProcess={(recipeId) => processRecipe(game.location, recipeId)}
+          onStartJob={(recipeId) => startTimedJob(game.location, recipeId)}
+          onCollectJob={(jobId) => collectJob(game.location, jobId)}
         />
       )}
 
@@ -1165,6 +1200,8 @@ interface WarehousePanelProps {
   onDeposit: (goodId: GoodId, qty: number) => void
   onWithdraw: (goodId: GoodId, qty: number) => void
   onProcess: (recipeId: string) => void
+  onStartJob: (recipeId: string) => void
+  onCollectJob: (jobId: string) => void
 }
 
 function WarehousePanel({
@@ -1177,6 +1214,8 @@ function WarehousePanel({
   onDeposit,
   onWithdraw,
   onProcess,
+  onStartJob,
+  onCollectJob,
 }: WarehousePanelProps) {
   if (!warehouse) {
     return (
@@ -1210,6 +1249,10 @@ function WarehousePanel({
   const fillPct = Math.min(100, (used / cap) * 100)
   const storedGoods = GOOD_IDS.filter((id) => (warehouse.stored[id] ?? 0) > 0)
   const cargoGoods = GOOD_IDS.filter((id) => (game.inventory[id] ?? 0) > 0)
+  const townRecipes = recipesForTown(game.location)
+  const instantRecipes = townRecipes.filter((r) => r.daysRequired === 0)
+  const timedRecipes = townRecipes.filter((r) => r.daysRequired > 0)
+  const activeJobs: ProcessingJob[] = warehouse.activeJobs ?? []
 
   return (
     <div className="warehouse-panel">
@@ -1344,56 +1387,159 @@ function WarehousePanel({
         </div>
       </div>
 
-      {/* Processing recipes */}
-      <div className="warehouse-recipes">
-        <h4 className="warehouse-col__title">Processing</h4>
-        <ul className="recipe-list">
-          {PROCESSING_RECIPES.map((recipe) => {
-            const canAfford = game.gold >= recipe.goldCost
-            const hasInputs = recipe.inputs.every(
-              (inp) => (game.inventory[inp.goodId] ?? 0) >= inp.qty,
-            )
-            return (
-              <li key={recipe.id} className="recipe-row">
-                <div className="recipe-row__info">
-                  <strong className="recipe-row__label">{recipe.label}</strong>
-                  <span className="recipe-row__desc muted small">{recipe.description}</span>
-                  <div className="recipe-row__ingredients">
-                    {recipe.inputs.map((inp) => (
-                      <span
-                        key={inp.goodId}
-                        className={
-                          (game.inventory[inp.goodId] ?? 0) >= inp.qty
-                            ? 'recipe-ingredient recipe-ingredient--have'
-                            : 'recipe-ingredient recipe-ingredient--missing'
-                        }
-                      >
-                        {inp.qty}× {GOODS[inp.goodId]?.name ?? inp.goodId}
+      {/* Active timed jobs */}
+      {activeJobs.length > 0 ? (
+        <div className="warehouse-recipes">
+          <h4 className="warehouse-col__title">Active jobs</h4>
+          <ul className="recipe-list">
+            {activeJobs.map((job) => {
+              const elapsed = game.day - job.startDay
+              const remaining = Math.max(0, job.daysRequired - elapsed)
+              const ready = remaining === 0
+              const progressPct = Math.min(100, (elapsed / job.daysRequired) * 100)
+              return (
+                <li key={job.id} className={`recipe-row recipe-row--job${ready ? ' recipe-row--ready' : ''}`}>
+                  <div className="recipe-row__info">
+                    <strong className="recipe-row__label">
+                      {job.outputs.map((o) => `${o.qty}× ${GOODS[o.goodId]?.name ?? o.goodId}`).join(', ')}
+                    </strong>
+                    <div className="recipe-job-progress">
+                      <div className="recipe-job-progress__bar">
+                        <div
+                          className="recipe-job-progress__fill"
+                          style={{ width: `${progressPct}%` }}
+                        />
+                      </div>
+                      <span className="recipe-job-progress__label muted small">
+                        {ready ? 'Ready to collect!' : `${remaining} day${remaining === 1 ? '' : 's'} remaining`}
                       </span>
-                    ))}
-                    <span className="recipe-ingredient recipe-ingredient--cost">+{recipe.goldCost}g</span>
-                    <span className="recipe-row__arrow">→</span>
-                    {recipe.outputs.map((out) => (
-                      <span key={out.goodId} className="recipe-ingredient recipe-ingredient--output">
-                        {out.qty}× {GOODS[out.goodId]?.name ?? out.goodId}
-                      </span>
-                    ))}
+                    </div>
                   </div>
-                </div>
-                <button
-                  type="button"
-                  className="recipe-row__btn"
-                  disabled={!canAfford || !hasInputs}
-                  onClick={() => onProcess(recipe.id)}
-                  title={!hasInputs ? 'Missing ingredients in cargo' : !canAfford ? 'Not enough gold' : ''}
-                >
-                  Process
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+                  <button
+                    type="button"
+                    className={`recipe-row__btn${ready ? ' recipe-row__btn--collect' : ''}`}
+                    disabled={!ready}
+                    onClick={() => onCollectJob(job.id)}
+                  >
+                    {ready ? 'Collect' : 'In progress'}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : null}
+
+      {/* Instant processing recipes */}
+      {instantRecipes.length > 0 ? (
+        <div className="warehouse-recipes">
+          <h4 className="warehouse-col__title">Processing (instant)</h4>
+          <ul className="recipe-list">
+            {instantRecipes.map((recipe) => {
+              const canAfford = game.gold >= recipe.goldCost
+              const hasInputs = recipe.inputs.every(
+                (inp) => (game.inventory[inp.goodId] ?? 0) >= inp.qty,
+              )
+              return (
+                <li key={recipe.id} className="recipe-row">
+                  <div className="recipe-row__info">
+                    <strong className="recipe-row__label">{recipe.label}</strong>
+                    <span className="recipe-row__desc muted small">{recipe.description}</span>
+                    <div className="recipe-row__ingredients">
+                      {recipe.inputs.map((inp) => (
+                        <span
+                          key={inp.goodId}
+                          className={
+                            (game.inventory[inp.goodId] ?? 0) >= inp.qty
+                              ? 'recipe-ingredient recipe-ingredient--have'
+                              : 'recipe-ingredient recipe-ingredient--missing'
+                          }
+                        >
+                          {inp.qty}× {GOODS[inp.goodId]?.name ?? inp.goodId}
+                        </span>
+                      ))}
+                      <span className="recipe-ingredient recipe-ingredient--cost">+{recipe.goldCost}g</span>
+                      <span className="recipe-row__arrow">→</span>
+                      {recipe.outputs.map((out) => (
+                        <span key={out.goodId} className="recipe-ingredient recipe-ingredient--output">
+                          {out.qty}× {GOODS[out.goodId]?.name ?? out.goodId}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="recipe-row__btn"
+                    disabled={!canAfford || !hasInputs}
+                    onClick={() => onProcess(recipe.id)}
+                    title={!hasInputs ? 'Missing ingredients in cargo' : !canAfford ? 'Not enough gold' : ''}
+                  >
+                    Process
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : null}
+
+      {/* Timed (town-specific) recipes */}
+      {timedRecipes.length > 0 ? (
+        <div className="warehouse-recipes">
+          <h4 className="warehouse-col__title">
+            Crafting <span className="recipe-town-badge">{TOWNS[game.location]?.name ?? game.location} only</span>
+          </h4>
+          <ul className="recipe-list">
+            {timedRecipes.map((recipe) => {
+              const canAfford = game.gold >= recipe.goldCost
+              const hasInputs = recipe.inputs.every(
+                (inp) => (game.inventory[inp.goodId] ?? 0) >= inp.qty,
+              )
+              return (
+                <li key={recipe.id} className="recipe-row recipe-row--timed">
+                  <div className="recipe-row__info">
+                    <strong className="recipe-row__label">{recipe.label}</strong>
+                    <span className="recipe-row__desc muted small">{recipe.description}</span>
+                    <div className="recipe-row__ingredients">
+                      {recipe.inputs.map((inp) => (
+                        <span
+                          key={inp.goodId}
+                          className={
+                            (game.inventory[inp.goodId] ?? 0) >= inp.qty
+                              ? 'recipe-ingredient recipe-ingredient--have'
+                              : 'recipe-ingredient recipe-ingredient--missing'
+                          }
+                        >
+                          {inp.qty}× {GOODS[inp.goodId]?.name ?? inp.goodId}
+                        </span>
+                      ))}
+                      <span className="recipe-ingredient recipe-ingredient--cost">+{recipe.goldCost}g</span>
+                      <span className="recipe-row__arrow">→</span>
+                      {recipe.outputs.map((out) => (
+                        <span key={out.goodId} className="recipe-ingredient recipe-ingredient--output">
+                          {out.qty}× {GOODS[out.goodId]?.name ?? out.goodId}
+                        </span>
+                      ))}
+                      <span className="recipe-ingredient recipe-ingredient--time">
+                        ⏳ {recipe.daysRequired}d
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="recipe-row__btn recipe-row__btn--start"
+                    disabled={!canAfford || !hasInputs}
+                    onClick={() => onStartJob(recipe.id)}
+                    title={!hasInputs ? 'Missing ingredients in cargo' : !canAfford ? 'Not enough gold' : `Takes ${recipe.daysRequired} days`}
+                  >
+                    Start job
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      ) : null}
     </div>
   )
 }

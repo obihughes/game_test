@@ -25,7 +25,10 @@ import {
   depositGoods as depositGoodsAction,
   withdrawGoods as withdrawGoodsAction,
   processRecipe as processRecipeAction,
+  startTimedJob as startTimedJobAction,
+  collectJob as collectJobAction,
 } from '@/game/investments/warehouse.ts'
+import { rollEncounter } from '@/game/events/encounters.ts'
 
 export interface CartItem {
   goodId: GoodId
@@ -33,10 +36,20 @@ export interface CartItem {
   kind: 'buy' | 'sell'
 }
 
+/** Info passed back from travelTo so the UI can run an animation. */
+export interface TravelResult {
+  success: true
+  fromTown: TownId
+  toTown: TownId
+  days: number
+  routeNames: string[]
+}
+
 export interface GameStore {
   game: GameState
   lastError: string | null
-  travelTo: (destination: TownId) => boolean
+  travelTo: (destination: TownId) => TravelResult | false
+  dismissEncounter: () => void
   buy: (goodId: GoodId, qty: number) => void
   sell: (goodId: GoodId, qty: number) => void
   /** Execute a batch of buy/sell operations in sequence; stops on first error. */
@@ -50,6 +63,8 @@ export interface GameStore {
   depositGoods: (townId: TownId, goodId: GoodId, qty: number) => void
   withdrawGoods: (townId: TownId, goodId: GoodId, qty: number) => void
   processRecipe: (townId: TownId, recipeId: string) => void
+  startTimedJob: (townId: TownId, recipeId: string) => void
+  collectJob: (townId: TownId, jobId: string) => void
   clearError: () => void
   reset: () => void
 }
@@ -69,7 +84,7 @@ export const useGameStore = create<GameStore>()(
       reset: () => set({ game: createInitialState(), lastError: null }),
 
       travelTo: (destination) => {
-        let didTravel = false
+        let result: TravelResult | false = false
         set((s) => {
           const plan = computeTravelPlan(s.game, destination)
           if (!plan) {
@@ -88,12 +103,44 @@ export const useGameStore = create<GameStore>()(
           }
 
           let next = applyUpkeepForTravel(r.state, plan.days)
+
+          // Roll encounter on the first leg of the journey
+          let encounter = null
+          if (plan.routes.length > 0) {
+            const resolved = rollEncounter(before, plan.routes[0]!)
+            if (resolved) {
+              next = { ...next, ...resolved.state, gold: resolved.state.gold }
+              encounter = resolved.encounter
+            }
+          }
+
+          // Increment town visit counter
+          const prevVisits = next.townVisits ?? {}
+          const newVisits = {
+            ...prevVisits,
+            [destination]: (prevVisits[destination] ?? 0) + 1,
+          }
+          next = { ...next, townVisits: newVisits, lastEncounter: encounter }
+
           next = applyQuestProgress(next)
-          didTravel = true
+
+          const routeNames = [before.location, ...plan.routes.map((rt) => rt.to)]
+          result = {
+            success: true,
+            fromTown: before.location,
+            toTown: destination,
+            days: plan.days,
+            routeNames,
+          }
           return { game: next, lastError: null }
         })
-        return didTravel
+        return result
       },
+
+      dismissEncounter: () =>
+        set((s) => ({
+          game: { ...s.game, lastEncounter: null },
+        })),
 
       buy: (goodId, qty) =>
         set((s) => {
@@ -188,11 +235,25 @@ export const useGameStore = create<GameStore>()(
           if (!r.ok) return { ...s, lastError: r.reason }
           return { game: r.state, lastError: null }
         }),
+
+      startTimedJob: (townId, recipeId) =>
+        set((s) => {
+          const r = startTimedJobAction(s.game, townId, recipeId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
+
+      collectJob: (townId, jobId) =>
+        set((s) => {
+          const r = collectJobAction(s.game, townId, jobId)
+          if (!r.ok) return { ...s, lastError: r.reason }
+          return { game: r.state, lastError: null }
+        }),
     }),
     {
       name: STORAGE_KEY,
       partialize: (state) => ({ game: state.game }),
-      version: 6,
+      version: 7,
       migrate: (persisted) => {
         const p = persisted as { game?: GameState }
         if (!p.game || typeof p.game.version !== 'number') {
@@ -215,6 +276,22 @@ export const useGameStore = create<GameStore>()(
         if (!g.townWarehouses || typeof g.townWarehouses !== 'object') {
           g = { ...g, townWarehouses: {}, version: SAVE_VERSION }
         }
+        // v7 migrations
+        if (!g.townVisits || typeof g.townVisits !== 'object') {
+          g = { ...g, townVisits: { [g.location]: 1 }, version: SAVE_VERSION }
+        }
+        if (!('lastEncounter' in (g as object))) {
+          g = { ...g, lastEncounter: null, version: SAVE_VERSION }
+        }
+        // Ensure all warehouses have activeJobs array
+        const updatedWarehouses = { ...g.townWarehouses }
+        for (const townId of Object.keys(updatedWarehouses)) {
+          const wh = updatedWarehouses[townId]
+          if (wh && !Array.isArray(wh.activeJobs)) {
+            updatedWarehouses[townId] = { ...wh, activeJobs: [] }
+          }
+        }
+        g = { ...g, townWarehouses: updatedWarehouses, version: SAVE_VERSION }
         return { game: g, lastError: null }
       },
     },

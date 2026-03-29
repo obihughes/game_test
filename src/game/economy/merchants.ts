@@ -171,6 +171,9 @@ const RIVERSEND: MerchantDef[] = [
       fish_sauce: { buy: 28, sell: 22 },
       iron: { buy: 20, sell: 12 },
       fen_spice: { buy: 46, sell: 34 },
+      seasoned_spice: { buy: 44, sell: 32 },
+      polished_amber: { buy: 82, sell: 60 },
+      cut_glass: { buy: 44, sell: 30 },
     },
   },
 ]
@@ -195,6 +198,7 @@ const CROWNPOST: MerchantDef[] = [
       fen_spice: { buy: 48, sell: 36 },
       dreaming_moss: { buy: 14, sell: 10 },
       obsidian_glass: { buy: 20, sell: 14 },
+      polished_amber: { buy: 90, sell: 68 },
     },
   },
   {
@@ -267,6 +271,7 @@ const STONEHOLT: MerchantDef[] = [
       iron: { buy: 9, sell: 5 },
       metal_tools: { buy: 16, sell: 10 },
       obsidian_glass: { buy: 11, sell: 7 },
+      cut_glass: { buy: 32, sell: 22 },
     },
   },
   {
@@ -301,6 +306,7 @@ const SALTMERE: MerchantDef[] = [
       fresh_fish: { buy: 5, sell: 3 },
       pitch: { buy: 10, sell: 6 },
       rope: { buy: 5, sell: 3 },
+      seasoned_spice: { buy: 28, sell: 18 },
     },
   },
   {

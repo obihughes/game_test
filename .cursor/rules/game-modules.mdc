@@ -5,16 +5,19 @@ globs: src/**/*
 
 # Caravan Merchant — module pointers
 
-- **Dialog / flavor text:** `src/content/dialog/dialog.ts` (keys only; logic stays in `src/game/quests`).
-- **Location stories & market backgrounds:** `src/content/locationContent.ts`; pixel town icons: `src/ui/icons/LocationPixelIcon.tsx`.
-- **Goods & merchants:** `src/game/economy/goods.ts`, `src/game/economy/merchants.ts` (per-town stalls, `effectivePriceRow`, `isLocalDeal`), `src/game/economy/prices.ts` (`getEffectivePrice` — daily variance × season multiplier); buy/sell + cost basis in `buySell.ts`; **price history** (trend direction, sparkline data) in `priceHistory.ts` (deterministic, no stored state).
+- **Dialog / flavor text:** `src/content/dialog/dialog.ts` (keys only; logic stays in `src/game/quests`). Arrival vignettes keyed as `arrive_{townId}_{season}_{visitBucket}`.
+- **Location stories, market backgrounds, arrival vignettes:** `src/content/locationContent.ts` — `getArrivalVignette(townId, season, visitCount)`; pixel town icons: `src/ui/icons/LocationPixelIcon.tsx`.
+- **Goods & merchants:** `src/game/economy/goods.ts` (24 goods incl. polished_amber, seasoned_spice, cut_glass), `src/game/economy/merchants.ts` (per-town stalls, `effectivePriceRow`, `isLocalDeal`), `src/game/economy/prices.ts` (`getEffectivePrice` — daily variance × season multiplier); buy/sell + cost basis in `buySell.ts`; **price history** (trend direction, sparkline data) in `priceHistory.ts` (deterministic, no stored state).
 - **Seasons:** `src/game/world/seasons.ts` — `getSeason` (28 days/season, computed from `day`), `getSeasonPriceMultiplier`, `getSeasonTravelPenalty` (+1 day in Winter), `getSeasonModifierLabel`.
-- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts` (`computeTravelLeg`: guard toll discount, scout −1 travel day, winter +1 day).
+- **World graph (routes, tolls, days):** `src/game/world/routes.ts`, `towns.ts`, `travel.ts` (`computeTravelLeg`: guard toll discount, scout -1 travel day, winter +1 day).
 - **Caravan upgrades:** `src/game/caravan/` — `cartTiers.ts`, `horses.ts`, `hires.ts`, `actions.ts` (`hire` / `dismissHire`) — capacity in `capacity.ts`.
-- **Town warehouses:** `src/game/investments/warehouse.ts` — `buildWarehouse` (200g), `upgradeWarehouse` (400g), `depositGoods`, `withdrawGoods`, `processRecipe`; `PROCESSING_RECIPES` (herbs→moss, salt-cure fish). State lives in `GameState.townWarehouses`.
+- **Town warehouses:** `src/game/investments/warehouse.ts` — `buildWarehouse` (200g), `upgradeWarehouse` (400g), `depositGoods`, `withdrawGoods`, `processRecipe` (instant), `startTimedJob` / `collectJob` (timed), `recipesForTown`; 12 recipes (6 universal instant + 6 town-specific timed). State lives in `GameState.townWarehouses` (each warehouse has `activeJobs: ProcessingJob[]`).
+- **Travel encounters:** `src/game/events/encounters.ts` — `rollEncounter(state, route)` returns `ResolvedEncounter | null`; deterministic seed from day+route; ~40% chance per leg; 11 encounter types. Encounter stored in `GameState.lastEncounter`, dismissed via `dismissEncounter()` store action.
 - **Quests:** `src/game/quests/definitions.ts` + `questLogic.ts`.
 - **Map look (SVG/CSS/colors):** `src/ui/map/` and `src/content/mapLayout.ts` for positions.
-- **Save game:** `src/game/persistence/` — key in `constants.ts`; current `SAVE_VERSION = 5`.
+- **Travel animation:** `src/ui/TravelAnimation.tsx` — CSS overlay shown during travel; `travelTo` now returns `TravelResult | false` instead of `boolean`.
+- **Encounter modal:** `src/ui/EncounterModal.tsx` — shown after travel when `game.lastEncounter` is set.
+- **Save game:** `src/game/persistence/` — key in `constants.ts`; current `SAVE_VERSION = 7`. Migration adds `townVisits`, `lastEncounter`, `activeJobs` defaults.
 - **Orchestration:** `src/store/gameStore.ts` — keep thin; business rules in `src/game/`.
 
 See `docs/GAME_MODULE_MAP.md` for the full table.

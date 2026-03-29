@@ -157,6 +157,27 @@ export const GOODS: Record<GoodId, Good> = {
     dialogFlavorId: 'good_tallow',
     icon: '🕯️',
   },
+  polished_amber: {
+    id: 'polished_amber',
+    name: 'Polished amber',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_polished_amber',
+    icon: '🟡',
+  },
+  seasoned_spice: {
+    id: 'seasoned_spice',
+    name: 'Seasoned spice blend',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_seasoned_spice',
+    icon: '🫙',
+  },
+  cut_glass: {
+    id: 'cut_glass',
+    name: 'Cut obsidian glass',
+    weightPerUnit: 1,
+    dialogFlavorId: 'good_cut_glass',
+    icon: '💠',
+  },
 }
 
 export const GOOD_IDS = Object.keys(GOODS) as GoodId[]

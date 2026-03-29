@@ -9,15 +9,15 @@ import { getSeasonTravelPenalty, getSeason } from '@/game/world/seasons.ts'
 import { bestSellPriceAtTown } from '@/game/economy/merchants.ts'
 import { GOOD_IDS, GOODS } from '@/game/economy/index.ts'
 import { dailyHireCost } from '@/game/caravan/actions.ts'
-import { useGameStore } from '@/store/gameStore.ts'
+import { useGameStore, type TravelResult } from '@/store/gameStore.ts'
 import styles from '@/ui/map/map.module.css'
 import { edgeBend, roadLabelAnchor, roadPathD } from '@/ui/map/mapEdgeGeometry.ts'
 
 interface MapTravelScreenProps {
-  onArriveAtTown?: () => void
+  onTravelStart?: (result: TravelResult) => void
 }
 
-export function MapTravelScreen({ onArriveAtTown }: MapTravelScreenProps) {
+export function MapTravelScreen({ onTravelStart }: MapTravelScreenProps) {
   const game = useGameStore((s) => s.game)
   const travelTo = useGameStore((s) => s.travelTo)
   const lastError = useGameStore((s) => s.lastError)
@@ -108,8 +108,8 @@ export function MapTravelScreen({ onArriveAtTown }: MapTravelScreenProps) {
 
   function handleTravelRequest(townId: string) {
     if (townId === game.location) return
-    const didTravel = travelTo(townId)
-    if (didTravel) onArriveAtTown?.()
+    const result = travelTo(townId)
+    if (result) onTravelStart?.(result)
   }
 
   return (

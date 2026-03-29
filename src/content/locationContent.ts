@@ -1,4 +1,6 @@
 import type { TownId } from '@/game/core/types.ts'
+import { getDialog } from './dialog/dialog.ts'
+import type { Season } from '@/game/world/seasons.ts'
 
 /** Short lore shown on the market panel for the current town. */
 export const LOCATION_STORIES: Record<TownId, string> = {
@@ -64,4 +66,21 @@ export function getLocationStory(townId: TownId): string {
 export function getLocationPanelBackground(townId: TownId): { background: string } {
   const background = LOCATION_PANEL_BACKGROUNDS[townId] ?? LOCATION_PANEL_BACKGROUNDS.ashenford
   return { background }
+}
+
+/**
+ * Returns a short arrival vignette for a town based on season and visit count.
+ * visitCount: how many times the player has visited this town (including this visit).
+ */
+export function getArrivalVignette(townId: TownId, season: Season, visitCount: number): string {
+  const bucket = visitCount <= 1 ? 'first' : visitCount <= 4 ? 'returning' : 'regular'
+  // Try specific bucket, fall back to 'returning', then 'first'
+  const key = `arrive_${townId}_${season}_${bucket}`
+  const fallback = `arrive_${townId}_${season}_returning`
+  const firstVisit = `arrive_${townId}_${season}_first`
+  const result = getDialog(key)
+  if (result !== key) return result
+  const r2 = getDialog(fallback)
+  if (r2 !== fallback) return r2
+  return getDialog(firstVisit)
 }
