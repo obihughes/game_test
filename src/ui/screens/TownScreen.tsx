@@ -35,34 +35,31 @@ import type { GoodId, ProcessingJob, WarehouseFacilityId } from '@/game/core/typ
 
 type MarketTab = 'market' | 'people' | 'warehouse'
 type TradeKind = 'buy' | 'sell'
+type MarketRowKey = TradeKind | 'market'
+type TrendDirection = 'up' | 'down' | 'flat'
 type TradeOffer = {
   row: { buy: number; sell: number }
 }
-type BuyEntry = {
+type MarketEntry = {
   id: GoodId
-  offer: TradeOffer
-  offers: TradeOffer[]
-  isPrimary: boolean
-  trend: 'up' | 'down' | 'flat'
-  visitDeltaPct: number | null
-  seasonLabel: string | null
-  sparklineData: number[]
-}
-type SellEntry = {
-  id: GoodId
+  buyOffer: TradeOffer | null
+  sellOffer: TradeOffer | null
   count: number
-  offer: TradeOffer | null
-  offers: TradeOffer[]
   avgBuy: number | null
   sellDelta: number | null
+  weight: number
+  isPrimary: boolean
   isWanted: boolean
   isFallback: boolean
   demandReason: string | null
-  weight: number
-  trend: 'up' | 'down' | 'flat'
-  visitDeltaPct: number | null
-  seasonLabel: string | null
-  sparklineData: number[]
+  buyTrend: TrendDirection
+  buyVisitDeltaPct: number | null
+  buySeasonLabel: string | null
+  buySparklineData: number[]
+  sellTrend: TrendDirection
+  sellVisitDeltaPct: number | null
+  sellSeasonLabel: string | null
+  sellSparklineData: number[]
 }
 
 export function TownScreen() {
@@ -165,79 +162,64 @@ export function TownScreen() {
     [game.inventory],
   )
 
-  const buyEntries = useMemo<BuyEntry[]>(
+  const marketEntries = useMemo<MarketEntry[]>(
     () =>
       GOOD_IDS.map((id) => {
         const row = townMarketPriceRow(game.location, id, game.day)
-        if (!row || row.buy <= 0) return null
-        const offer = { row }
-        const visitComparison = getVisitPriceComparison(
-          game.location,
-          id,
-          game.day,
-          previousVisitDay,
-          'buy',
-        )
-        return {
-          id,
-          offer,
-          offers: [offer],
-          isPrimary: primaryGoods.has(id),
-          trend: visitComparison?.direction ?? 'flat',
-          visitDeltaPct: visitComparison?.percentChange ?? null,
-          seasonLabel: getSeasonModifierLabel(id, game.day),
-          sparklineData: getPriceTrend(game.location, id, game.day, 7).map((p) => p.buy),
-        }
-      })
-        .filter((entry): entry is BuyEntry => entry !== null)
-        .sort(
-          (a, b) =>
-            Number(b.isPrimary) - Number(a.isPrimary) ||
-            a.offer.row.buy - b.offer.row.buy ||
-            GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
-        ),
-    [game.location, game.day, previousVisitDay, primaryGoods],
-  )
-
-  const sellEntries = useMemo<SellEntry[]>(
-    () =>
-      cargoGoods.map((id) => {
+        const buyOffer = row && row.buy > 0 ? { row } : null
         const bestOffer = bestSellOfferAtTown(game.location, id, game.day)
-        const offer = bestOffer ? { row: bestOffer.row } : null
+        const sellOffer = bestOffer ? { row: bestOffer.row } : null
         const count = game.inventory[id] ?? 0
+        if (!buyOffer && count <= 0) return null
         const weight = GOODS[id]!.weightPerUnit * count
         const avgBuy = averageInventoryBuyPrice(game, id)
         const sellDelta =
-          offer && avgBuy !== null ? Math.round((offer.row.sell - avgBuy) * 10) / 10 : null
-        const visitComparison =
-          offer && !(bestOffer?.isFallback ?? false)
+          sellOffer && avgBuy !== null ? Math.round((sellOffer.row.sell - avgBuy) * 10) / 10 : null
+        const buyVisitComparison =
+          buyOffer
+            ? getVisitPriceComparison(game.location, id, game.day, previousVisitDay, 'buy')
+            : null
+        const sellVisitComparison =
+          sellOffer && !(bestOffer?.isFallback ?? false)
             ? getVisitPriceComparison(game.location, id, game.day, previousVisitDay, 'sell')
             : null
         return {
           id,
+          buyOffer,
+          sellOffer,
           count,
-          offer,
-          offers: offer ? [offer] : [],
           avgBuy,
           sellDelta,
+          weight,
+          isPrimary: primaryGoods.has(id),
           isWanted: wantedGoods.has(id),
           isFallback: bestOffer?.isFallback ?? false,
           demandReason: getTownDemandReason(game.location, id),
-          weight,
-          trend: visitComparison?.direction ?? 'flat',
-          visitDeltaPct: visitComparison?.percentChange ?? null,
-          seasonLabel: getSeasonModifierLabel(id, game.day),
-          sparklineData: offer && !(bestOffer?.isFallback ?? false)
+          buyTrend: buyVisitComparison?.direction ?? 'flat',
+          buyVisitDeltaPct: buyVisitComparison?.percentChange ?? null,
+          buySeasonLabel: buyOffer ? getSeasonModifierLabel(id, game.day) : null,
+          buySparklineData: buyOffer ? getPriceTrend(game.location, id, game.day, 7).map((p) => p.buy) : [],
+          sellTrend: sellVisitComparison?.direction ?? 'flat',
+          sellVisitDeltaPct: sellVisitComparison?.percentChange ?? null,
+          sellSeasonLabel: sellOffer ? getSeasonModifierLabel(id, game.day) : null,
+          sellSparklineData: sellOffer && !(bestOffer?.isFallback ?? false)
             ? getPriceTrend(game.location, id, game.day, 7).map((p) => p.sell)
             : [],
         }
-      }).sort(
+      })
+        .filter((entry): entry is MarketEntry => entry !== null)
+        .sort(
         (a, b) =>
-          Number(b.isWanted) - Number(a.isWanted) ||
-          (b.offer?.row.sell ?? 0) - (a.offer?.row.sell ?? 0) ||
+          Number((b.count > 0 && b.isWanted)) - Number((a.count > 0 && a.isWanted)) ||
+          Number(b.count > 0) - Number(a.count > 0) ||
+          Number(Boolean(b.buyOffer)) - Number(Boolean(a.buyOffer)) ||
+          Number(b.isPrimary) - Number(a.isPrimary) ||
+          (b.sellOffer?.row.sell ?? 0) - (a.sellOffer?.row.sell ?? 0) ||
+          (a.buyOffer?.row.buy ?? Number.MAX_SAFE_INTEGER)
+            - (b.buyOffer?.row.buy ?? Number.MAX_SAFE_INTEGER) ||
           GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
-      ),
-    [cargoGoods, game, previousVisitDay, wantedGoods],
+        ),
+    [game, previousVisitDay, primaryGoods, wantedGoods],
   )
 
   function getWhQty(key: string, max: number): number {
@@ -275,7 +257,7 @@ export function TownScreen() {
     }, 0)
   }
 
-  function rowKey(kind: TradeKind, goodId: GoodId): string {
+  function rowKey(kind: MarketRowKey, goodId: GoodId): string {
     return `${kind}:${goodId}`
   }
 
@@ -585,39 +567,74 @@ export function TownScreen() {
 
       {marketTab === 'market' ? (
         <div className="market-screen__content">
-          <div className="market-board">
-            <div className="market-column market-column--catalog">
-              <div className="market-column__heading">
-                <h3 className="market-column__title">Buy in town</h3>
-                <span className="muted small">
-                  {primaryGoodIds.length} local specialty{primaryGoodIds.length === 1 ? '' : 'ies'} · {buyEntries.length} goods listed
-                </span>
-              </div>
-              {buyEntries.length === 0 ? (
-                <p className="market-column__empty">Nothing in stock.</p>
-              ) : (
-                <ul className="trade-list">
-                  {buyEntries.map(({ id, offer, isPrimary, trend, visitDeltaPct, seasonLabel, sparklineData }) => {
+          <div className="market-unified">
+            <div className="market-column__heading">
+              <h3 className="market-column__title">Market board</h3>
+              <span className="muted small">
+                {marketEntries.length} goods in view · {cargoGoods.length} goods carried · {wantedGoodIds.length} wanted here
+              </span>
+            </div>
+            {marketEntries.length === 0 ? (
+              <p className="market-column__empty">Nothing in stock.</p>
+            ) : (
+              <ul className="trade-list">
+                {marketEntries.map(
+                  ({
+                    id,
+                    buyOffer,
+                    sellOffer,
+                    count,
+                    avgBuy,
+                    sellDelta,
+                    isPrimary,
+                    isWanted,
+                    isFallback,
+                    demandReason,
+                    weight,
+                    buyTrend,
+                    buyVisitDeltaPct,
+                    buySeasonLabel,
+                    buySparklineData,
+                    sellTrend,
+                    sellVisitDeltaPct,
+                    sellSeasonLabel,
+                    sellSparklineData,
+                  }) => {
                     const good = GOODS[id]!
-                    const key = rowKey('buy', id)
-                    const inCart = cart.find((item) => item.kind === 'buy' && item.goodId === id)
-                    const maxQty = maxBuyQtyForOffer(id, offer.row.buy)
-                    const qtyLimit = Math.max(maxQty, inCart?.qty ?? 1, 1)
-                    const qty = getTradeQty(key, qtyLimit, inCart?.qty ?? 1)
-                    const sparklineKey = `buy-${id}`
-                    const isExpanded = expandedRows[key]
+                    const detailsKey = rowKey('market', id)
+                    const buyKey = rowKey('buy', id)
+                    const sellKey = rowKey('sell', id)
+                    const buyInCart = buyOffer
+                      ? cart.find((item) => item.kind === 'buy' && item.goodId === id)
+                      : undefined
+                    const sellInCart = sellOffer
+                      ? cart.find((item) => item.kind === 'sell' && item.goodId === id)
+                      : undefined
+                    const maxBuyQty = buyOffer ? maxBuyQtyForOffer(id, buyOffer.row.buy) : 0
+                    const buyQtyLimit = Math.max(maxBuyQty, buyInCart?.qty ?? 1, 1)
+                    const buyQty = getTradeQty(buyKey, buyQtyLimit, buyInCart?.qty ?? 1)
+                    const sellQtyLimit = Math.max(count, 1)
+                    const sellQty = getTradeQty(sellKey, sellQtyLimit, sellInCart?.qty ?? 1)
+                    const buySparklineKey = `buy-${id}`
+                    const sellSparklineKey = `sell-${id}`
+                    const isExpanded = expandedRows[detailsKey]
                     return (
                       <li
                         key={id}
-                        className={`trade-row${isPrimary ? ' trade-row--primary' : ''}${inCart ? ' trade-row--in-cart' : ''}`}
+                        className={`market-unified-row${isPrimary ? ' trade-row--primary' : ''}${isWanted ? ' trade-row--wanted' : ''}${buyInCart || sellInCart ? ' trade-row--in-cart' : ''}`}
                       >
-                        <div className="trade-row__item">
+                        <div className="market-unified-row__item">
                           <GoodIcon goodId={id} size={24} className="trade-row__icon" />
                           <div className="trade-row__name">
                             <div className="trade-row__name-line">
                               <strong>{good.name}</strong>
-                              {inCart ? (
-                                <span className="trade-row__cart-chip">Cart ×{inCart.qty}</span>
+                              {buyInCart ? (
+                                <span className="trade-row__cart-chip">Buy cart ×{buyInCart.qty}</span>
+                              ) : null}
+                              {sellInCart ? (
+                                <span className="trade-row__cart-chip trade-row__cart-chip--sell">
+                                  Sell cart ×{sellInCart.qty}
+                                </span>
                               ) : null}
                             </div>
                             <div className="trade-row__meta muted small">
@@ -625,280 +642,254 @@ export function TownScreen() {
                               <button
                                 type="button"
                                 className="linkish trade-row__details-toggle"
-                                onClick={() => toggleRowExpanded(key)}
+                                onClick={() => toggleRowExpanded(detailsKey)}
                               >
                                 {isExpanded ? 'Hide details' : 'Details'}
                               </button>
                             </div>
                           </div>
                         </div>
-                        <div className="trade-row__prices">
-                          <div className="trade-row__price-line">
-                            {isPrimary ? (
-                              <span className="trade-row__badge trade-row__badge--primary" title="One of this town's cheapest local goods">
-                                Local supply
+
+                        <div className={`market-unified-row__panel market-unified-row__buy${buyOffer ? '' : ' market-unified-row__panel--empty'}`}>
+                          <span className="market-unified-row__label">Buy in town</span>
+                          {buyOffer ? (
+                            <>
+                              <div className="trade-row__price-line">
+                                {isPrimary ? (
+                                  <span
+                                    className="trade-row__badge trade-row__badge--primary"
+                                    title="One of this town's cheapest local goods"
+                                  >
+                                    Local supply
+                                  </span>
+                                ) : null}
+                                {isLocalDeal(game.location, id, game.day) ? (
+                                  <span className="trade-row__badge" title="Below typical market buy price today">
+                                    Deal
+                                  </span>
+                                ) : null}
+                                {buySeasonLabel ? (
+                                  <span
+                                    className={
+                                      buySeasonLabel.startsWith('+')
+                                        ? 'trade-row__season-badge trade-row__season-badge--up'
+                                        : 'trade-row__season-badge trade-row__season-badge--down'
+                                    }
+                                    title="Season price modifier"
+                                  >
+                                    {buySeasonLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <span className="trade-row__price">
+                                Buy <strong>{buyOffer.row.buy}</strong>g
+                                {buyVisitDeltaPct !== null ? (
+                                  <span
+                                    className={`trade-row__trend trade-row__trend--${buyTrend}`}
+                                    title={`Compared to your last visit${previousVisitDay ? ` on day ${previousVisitDay}` : ''}: ${formatSignedPercent(buyVisitDeltaPct)}`}
+                                    onMouseEnter={() => setHoveredSparkline(buySparklineKey)}
+                                    onMouseLeave={() => setHoveredSparkline(null)}
+                                  >
+                                    {trendArrow(buyTrend)} {formatSignedPercent(buyVisitDeltaPct)}
+                                  </span>
+                                ) : null}
                               </span>
-                            ) : null}
-                            {isLocalDeal(game.location, id, game.day) ? (
-                              <span className="trade-row__badge" title="Below typical market buy price today">
-                                Deal
+                              {hoveredSparkline === buySparklineKey && buySparklineData.length > 1 ? (
+                                <Sparkline data={buySparklineData} />
+                              ) : null}
+                            </>
+                          ) : (
+                            <span className="trade-row__price muted small">Not sold here</span>
+                          )}
+                        </div>
+
+                        <div className={`market-unified-row__panel market-unified-row__inv${count > 0 ? '' : ' market-unified-row__inv--empty'}`}>
+                          <span className="market-unified-row__label">Your inventory</span>
+                          <span className="trade-row__price">
+                            {count > 0 ? (
+                              <>
+                                Hold <strong>×{count}</strong>
+                              </>
+                            ) : (
+                              'Hold —'
+                            )}
+                          </span>
+                          <span className="market-unified-row__meta muted small">
+                            Avg buy: {avgBuy !== null ? `${formatGold(avgBuy)}g` : '—'}
+                          </span>
+                          <span className="market-unified-row__meta muted small">
+                            {count > 0 ? `${weight} wt carried` : 'No stock on hand'}
+                          </span>
+                        </div>
+
+                        <div className={`market-unified-row__panel market-unified-row__sell${sellOffer ? '' : ' market-unified-row__panel--empty'}`}>
+                          <span className="market-unified-row__label">Sell here</span>
+                          {sellOffer ? (
+                            <>
+                              <div className="trade-row__price-line">
+                                {isWanted ? (
+                                  <span
+                                    className="trade-row__badge trade-row__badge--wanted"
+                                    title="This town pays above its usual market baseline for this good"
+                                  >
+                                    Wanted here
+                                  </span>
+                                ) : null}
+                                {isFallback ? (
+                                  <span
+                                    className="trade-row__badge"
+                                    title="If no named stall is posting for this good, local quartermasters, inns, docks, and street buyers still offer a lower townwide price"
+                                  >
+                                    Town buyers
+                                  </span>
+                                ) : null}
+                                {sellSeasonLabel ? (
+                                  <span
+                                    className={
+                                      sellSeasonLabel.startsWith('+')
+                                        ? 'trade-row__season-badge trade-row__season-badge--up'
+                                        : 'trade-row__season-badge trade-row__season-badge--down'
+                                    }
+                                  >
+                                    {sellSeasonLabel}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <span className="trade-row__price">
+                                Sell <strong>{sellOffer.row.sell}</strong>g
+                                {sellVisitDeltaPct !== null ? (
+                                  <span
+                                    className={`trade-row__trend trade-row__trend--${sellTrend}`}
+                                    title={`Compared to your last visit${previousVisitDay ? ` on day ${previousVisitDay}` : ''}: ${formatSignedPercent(sellVisitDeltaPct)}`}
+                                    onMouseEnter={() => setHoveredSparkline(sellSparklineKey)}
+                                    onMouseLeave={() => setHoveredSparkline(null)}
+                                  >
+                                    {trendArrow(sellTrend)} {formatSignedPercent(sellVisitDeltaPct)}
+                                  </span>
+                                ) : null}
                               </span>
-                            ) : null}
-                            {seasonLabel ? (
+                              {hoveredSparkline === sellSparklineKey && sellSparklineData.length > 1 ? (
+                                <Sparkline data={sellSparklineData} />
+                              ) : null}
                               <span
                                 className={
-                                  seasonLabel.startsWith('+')
-                                    ? 'trade-row__season-badge trade-row__season-badge--up'
-                                    : 'trade-row__season-badge trade-row__season-badge--down'
+                                  sellDelta === null
+                                    ? 'market-unified-row__meta muted small'
+                                    : sellDelta >= 0
+                                      ? 'market-unified-row__pnl market-unified-row__pnl--up'
+                                      : 'market-unified-row__pnl market-unified-row__pnl--down'
                                 }
-                                title="Season price modifier"
                               >
-                                {seasonLabel}
+                                {sellDelta === null
+                                  ? 'P/L vs avg: —'
+                                  : `${sellDelta >= 0 ? '+' : ''}${formatGold(sellDelta)}g / unit`}
                               </span>
-                            ) : null}
+                            </>
+                          ) : (
+                            <span className="trade-row__price muted small">Not buying today</span>
+                          )}
+                        </div>
+
+                        <div className="market-unified-row__actions">
+                          <div className="market-unified-row__action-group">
+                            <span className="market-unified-row__action-label">Buy</span>
+                            <QtyStepper
+                              value={buyQty}
+                              max={buyQtyLimit}
+                              disabled={!buyOffer || maxBuyQty <= 0}
+                              shortcutLabel="Max"
+                              shortcutDisabled={!buyOffer || maxBuyQty <= 0}
+                              onChange={(next) => setTradeQtyFor(buyKey, next, buyQtyLimit)}
+                              onShortcut={() => setTradeQtyFor(buyKey, maxBuyQty, buyQtyLimit)}
+                            />
+                            <div className="market-unified-row__action-buttons">
+                              <button
+                                type="button"
+                                className="trade-row__btn trade-row__btn--buy"
+                                disabled={!buyOffer || maxBuyQty <= 0}
+                                onClick={() => {
+                                  if (!buyOffer) return
+                                  requestTrade('buy', id, buyQty, buyOffer.row.buy)
+                                }}
+                              >
+                                {buyQty === 1 ? 'Buy now' : `Buy ×${buyQty}`}
+                              </button>
+                              <button
+                                type="button"
+                                className="trade-row__btn ghost small"
+                                disabled={!buyOffer || maxBuyQty <= 0}
+                                onClick={() => {
+                                  if (!buyOffer) return
+                                  setCartItem({
+                                    goodId: id,
+                                    qty: buyQty,
+                                    kind: 'buy',
+                                  })
+                                }}
+                              >
+                                {buyInCart ? 'Update cart' : 'Add to cart'}
+                              </button>
+                            </div>
                           </div>
-                          <span className="trade-row__price">
-                            Buy <strong>{offer.row.buy}</strong>g
-                            {visitDeltaPct !== null ? (
-                              <span
-                                className={`trade-row__trend trade-row__trend--${trend}`}
-                                title={`Compared to your last visit${previousVisitDay ? ` on day ${previousVisitDay}` : ''}: ${formatSignedPercent(visitDeltaPct)}`}
-                                onMouseEnter={() => setHoveredSparkline(sparklineKey)}
-                                onMouseLeave={() => setHoveredSparkline(null)}
+
+                          <div className="market-unified-row__action-group">
+                            <span className="market-unified-row__action-label">Sell</span>
+                            <QtyStepper
+                              value={sellQty}
+                              max={sellQtyLimit}
+                              disabled={!sellOffer || count <= 0}
+                              shortcutLabel="All"
+                              shortcutDisabled={!sellOffer || count <= 0}
+                              onChange={(next) => setTradeQtyFor(sellKey, next, sellQtyLimit)}
+                              onShortcut={() => setTradeQtyFor(sellKey, count, sellQtyLimit)}
+                            />
+                            <div className="market-unified-row__action-buttons">
+                              <button
+                                type="button"
+                                className="trade-row__btn trade-row__btn--sell"
+                                disabled={!sellOffer || count <= 0}
+                                onClick={() => {
+                                  if (!sellOffer) return
+                                  requestTrade('sell', id, sellQty, sellOffer.row.sell)
+                                }}
                               >
-                                {trendArrow(trend)} {formatSignedPercent(visitDeltaPct)}
-                              </span>
-                            ) : null}
-                          </span>
-                          {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
-                            <Sparkline data={sparklineData} />
-                          ) : null}
+                                {sellQty === 1 ? 'Sell now' : `Sell ×${sellQty}`}
+                              </button>
+                              <button
+                                type="button"
+                                className="trade-row__btn ghost small"
+                                disabled={!sellOffer || count <= 0}
+                                onClick={() => {
+                                  if (!sellOffer) return
+                                  setCartItem({
+                                    goodId: id,
+                                    qty: sellQty,
+                                    kind: 'sell',
+                                  })
+                                }}
+                              >
+                                {sellInCart ? 'Update cart' : 'Add to cart'}
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                        <QtyStepper
-                          value={qty}
-                          max={qtyLimit}
-                          disabled={maxQty <= 0}
-                          shortcutLabel="Max"
-                          shortcutDisabled={maxQty <= 0}
-                          onChange={(next) => setTradeQtyFor(key, next, qtyLimit)}
-                          onShortcut={() => setTradeQtyFor(key, maxQty, qtyLimit)}
-                        />
-                        <div className="trade-row__actions">
-                          <button
-                            type="button"
-                            className="trade-row__btn trade-row__btn--buy"
-                            disabled={maxQty <= 0}
-                            onClick={() => requestTrade('buy', id, qty, offer.row.buy)}
-                          >
-                            {qty === 1 ? 'Buy now' : `Buy ×${qty}`}
-                          </button>
-                          <button
-                            type="button"
-                            className="trade-row__btn ghost small"
-                            disabled={maxQty <= 0}
-                            onClick={() =>
-                              setCartItem({
-                                goodId: id,
-                                qty,
-                                kind: 'buy',
-                              })
-                            }
-                          >
-                            {inCart ? 'Update cart' : 'Add to cart'}
-                          </button>
-                        </div>
+
                         {isExpanded ? (
                           <div className="trade-row__details">
                             <p className="trade-row__details-copy">{getDialog(good.dialogFlavorId)}</p>
+                            <div className="trade-row__details-meta muted small">
+                              {demandReason ? <span>Local demand: {demandReason}</span> : null}
+                              <span>Avg buy: {avgBuy !== null ? `${formatGold(avgBuy)}g` : '—'}</span>
+                              <span>In cargo: ×{count}</span>
+                            </div>
                           </div>
                         ) : null}
                       </li>
                     )
-                  })}
-                </ul>
-              )}
-            </div>
-
-            <div className="market-column market-column--cargo">
-              <div className="market-column__heading">
-                <h3 className="market-column__title">Sell from cargo</h3>
-                <span className="muted small">
-                  {wantedGoodIds.length} wanted good{wantedGoodIds.length === 1 ? '' : 's'} · {cargoGoods.length} goods carried
-                </span>
-              </div>
-              {cargoGoods.length === 0 ? (
-                <p className="market-column__empty">Cargo empty.</p>
-              ) : (
-                <ul className="trade-list">
-                  {sellEntries.map(
-                    ({
-                      id,
-                      count,
-                      offer,
-                      avgBuy,
-                      sellDelta,
-                      isWanted,
-                      isFallback,
-                      demandReason,
-                      weight,
-                      trend,
-                      visitDeltaPct,
-                      seasonLabel,
-                      sparklineData,
-                    }) => {
-                      const good = GOODS[id]!
-                      const key = rowKey('sell', id)
-                      const inCart = offer ? cart.find((item) => item.kind === 'sell' && item.goodId === id) : undefined
-                      const qty = getTradeQty(key, Math.max(count, 1), inCart?.qty ?? 1)
-                      const sparklineKey = `sell-${id}`
-                      const isExpanded = expandedRows[key]
-                      return (
-                        <li
-                          key={id}
-                          className={`trade-row${isWanted ? ' trade-row--wanted' : ''}${inCart ? ' trade-row--in-cart' : ''}`}
-                        >
-                          <div className="trade-row__item">
-                            <GoodIcon goodId={id} size={24} className="trade-row__icon" />
-                            <div className="trade-row__name">
-                              <div className="trade-row__name-line">
-                                <strong>{good.name}</strong>
-                                {inCart ? (
-                                  <span className="trade-row__cart-chip trade-row__cart-chip--sell">
-                                    Cart ×{inCart.qty}
-                                  </span>
-                                ) : null}
-                              </div>
-                              <div className="trade-row__meta muted small">
-                                <span>×{count} carried</span>
-                                <span>{weight} wt total</span>
-                                <button
-                                  type="button"
-                                  className="linkish trade-row__details-toggle"
-                                  onClick={() => toggleRowExpanded(key)}
-                                >
-                                  {isExpanded ? 'Hide details' : 'Details'}
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="trade-row__prices">
-                            {offer ? (
-                              <>
-                                <div className="trade-row__price-line">
-                                  {isWanted ? (
-                                    <span className="trade-row__badge trade-row__badge--wanted" title="This town pays above its usual market baseline for this good">
-                                      Wanted here
-                                    </span>
-                                  ) : null}
-                                  {isFallback ? (
-                                    <span className="trade-row__badge" title="If no named stall is posting for this good, local quartermasters, inns, docks, and street buyers still offer a lower townwide price">
-                                      Town buyers
-                                    </span>
-                                  ) : null}
-                                  {seasonLabel ? (
-                                    <span
-                                      className={
-                                        seasonLabel.startsWith('+')
-                                          ? 'trade-row__season-badge trade-row__season-badge--up'
-                                          : 'trade-row__season-badge trade-row__season-badge--down'
-                                      }
-                                    >
-                                      {seasonLabel}
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <span className="trade-row__price">
-                                  Sell <strong>{offer.row.sell}</strong>g
-                                  {visitDeltaPct !== null ? (
-                                    <span
-                                      className={`trade-row__trend trade-row__trend--${trend}`}
-                                      title={`Compared to your last visit${previousVisitDay ? ` on day ${previousVisitDay}` : ''}: ${formatSignedPercent(visitDeltaPct)}`}
-                                      onMouseEnter={() => setHoveredSparkline(sparklineKey)}
-                                      onMouseLeave={() => setHoveredSparkline(null)}
-                                    >
-                                      {trendArrow(trend)} {formatSignedPercent(visitDeltaPct)}
-                                    </span>
-                                  ) : null}
-                                </span>
-                                {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
-                                  <Sparkline data={sparklineData} />
-                                ) : null}
-                                {sellDelta !== null ? (
-                                  <span
-                                    className={
-                                      sellDelta >= 0
-                                        ? 'trade-row__vs-avg trade-row__vs-avg--up'
-                                        : 'trade-row__vs-avg trade-row__vs-avg--down'
-                                    }
-                                  >
-                                    {sellDelta >= 0 ? '+' : ''}
-                                    {sellDelta === Math.floor(sellDelta) ? sellDelta : sellDelta.toFixed(1)} vs avg
-                                  </span>
-                                ) : null}
-                              </>
-                            ) : (
-                              <span className="trade-row__price muted small">Not buying today</span>
-                            )}
-                          </div>
-                          <QtyStepper
-                            value={qty}
-                            max={Math.max(count, 1)}
-                            disabled={!offer}
-                            shortcutLabel="All"
-                            shortcutDisabled={!offer}
-                            onChange={(next) => setTradeQtyFor(key, next, Math.max(count, 1))}
-                            onShortcut={() => setTradeQtyFor(key, count, Math.max(count, 1))}
-                          />
-                          <div className="trade-row__actions">
-                            <button
-                              type="button"
-                              className="trade-row__btn trade-row__btn--sell"
-                              disabled={!offer}
-                              onClick={() => {
-                                if (!offer) return
-                                requestTrade('sell', id, qty, offer.row.sell)
-                              }}
-                            >
-                              {qty === 1 ? 'Sell now' : `Sell ×${qty}`}
-                            </button>
-                            <button
-                              type="button"
-                              className="trade-row__btn ghost small"
-                              disabled={!offer}
-                              onClick={() => {
-                                if (!offer) return
-                                setCartItem({
-                                  goodId: id,
-                                  qty,
-                                  kind: 'sell',
-                                })
-                              }}
-                            >
-                              {inCart ? 'Update cart' : 'Add to cart'}
-                            </button>
-                          </div>
-                          {isExpanded ? (
-                            <div className="trade-row__details">
-                              <p className="trade-row__details-copy">{getDialog(good.dialogFlavorId)}</p>
-                              <div className="trade-row__details-meta muted small">
-                                {demandReason ? <span>Local demand: {demandReason}</span> : null}
-                                {avgBuy !== null ? (
-                                  <span>
-                                    Avg buy: {avgBuy === Math.floor(avgBuy) ? avgBuy : avgBuy.toFixed(1)}g
-                                  </span>
-                                ) : (
-                                  <span>Avg buy: —</span>
-                                )}
-                              </div>
-                            </div>
-                          ) : null}
-                        </li>
-                      )
-                    },
-                  )}
-                </ul>
-              )}
-            </div>
+                  },
+                )}
+              </ul>
+            )}
           </div>
 
           <aside className="trade-sidebar">
@@ -1197,6 +1188,10 @@ function formatSignedPercent(value: number): string {
   const percentText =
     absValue === Math.floor(absValue) ? absValue.toFixed(0) : absValue.toFixed(1)
   return `${prefix}${percentText}%`
+}
+
+function formatGold(value: number): string {
+  return value === Math.floor(value) ? value.toFixed(0) : value.toFixed(1)
 }
 
 // ── Sparkline ────────────────────────────────────────────────────────────────
