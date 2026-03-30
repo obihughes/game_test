@@ -141,11 +141,28 @@ export const useGameStore = create<GameStore>()(
 
           // Increment town visit counter
           const prevVisits = next.townVisits ?? {}
+          const prevLastVisitDays = next.townLastVisitDay ?? {}
+          const prevPreviousVisitDays = next.townPreviousVisitDay ?? {}
+          const priorVisitDay = prevLastVisitDays[destination]
           const newVisits = {
             ...prevVisits,
             [destination]: (prevVisits[destination] ?? 0) + 1,
           }
-          next = { ...next, townVisits: newVisits, lastEncounter: encounter }
+          const newLastVisitDays = {
+            ...prevLastVisitDays,
+            [destination]: next.day,
+          }
+          const newPreviousVisitDays =
+            typeof priorVisitDay === 'number'
+              ? { ...prevPreviousVisitDays, [destination]: priorVisitDay }
+              : prevPreviousVisitDays
+          next = {
+            ...next,
+            townVisits: newVisits,
+            townLastVisitDay: newLastVisitDays,
+            townPreviousVisitDay: newPreviousVisitDays,
+            lastEncounter: encounter,
+          }
 
           next = finalizeGameState(next)
 
@@ -345,6 +362,12 @@ export const useGameStore = create<GameStore>()(
         // v7 migrations
         if (!g.townVisits || typeof g.townVisits !== 'object') {
           g = { ...g, townVisits: { [g.location]: 1 }, version: SAVE_VERSION }
+        }
+        if (!g.townLastVisitDay || typeof g.townLastVisitDay !== 'object') {
+          g = { ...g, townLastVisitDay: { [g.location]: g.day }, version: SAVE_VERSION }
+        }
+        if (!g.townPreviousVisitDay || typeof g.townPreviousVisitDay !== 'object') {
+          g = { ...g, townPreviousVisitDay: {}, version: SAVE_VERSION }
         }
         if (!('lastEncounter' in (g as object))) {
           g = { ...g, lastEncounter: null, version: SAVE_VERSION }

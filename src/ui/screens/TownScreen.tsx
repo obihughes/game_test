@@ -9,7 +9,7 @@ import {
   townPrimaryGoods,
 } from '@/game/economy/index.ts'
 import { isLocalDeal } from '@/game/economy/merchants.ts'
-import { getPriceTrendDirection, trendArrow, getPriceTrend } from '@/game/economy/priceHistory.ts'
+import { getVisitPriceComparison, trendArrow, getPriceTrend } from '@/game/economy/priceHistory.ts'
 import { getSeasonModifierLabel, getSeason } from '@/game/world/seasons.ts'
 import { getDialog } from '@/content/dialog/dialog.ts'
 import { getArrivalVignette, getLocationPanelBackground, getLocationStory } from '@/content/locationContent.ts'
@@ -44,6 +44,7 @@ type BuyEntry = {
   offers: TradeOffer[]
   isPrimary: boolean
   trend: 'up' | 'down' | 'flat'
+  visitDeltaPct: number | null
   seasonLabel: string | null
   sparklineData: number[]
 }
@@ -59,6 +60,7 @@ type SellEntry = {
   demandReason: string | null
   weight: number
   trend: 'up' | 'down' | 'flat'
+  visitDeltaPct: number | null
   seasonLabel: string | null
   sparklineData: number[]
 }
@@ -139,6 +141,7 @@ export function TownScreen() {
   const marketBackdrop = useMemo(() => getLocationPanelBackground(game.location), [game.location])
   const economyProfile = useMemo(() => getTownEconomyProfile(game.location), [game.location])
   const warehouse = game.townWarehouses[game.location]
+  const previousVisitDay = game.townPreviousVisitDay?.[game.location]
 
   const arrivalVignette = useMemo(() => {
     const visits = game.townVisits?.[game.location] ?? 0
@@ -168,12 +171,20 @@ export function TownScreen() {
         const row = townMarketPriceRow(game.location, id, game.day)
         if (!row || row.buy <= 0) return null
         const offer = { row }
+        const visitComparison = getVisitPriceComparison(
+          game.location,
+          id,
+          game.day,
+          previousVisitDay,
+          'buy',
+        )
         return {
           id,
           offer,
           offers: [offer],
           isPrimary: primaryGoods.has(id),
-          trend: getPriceTrendDirection(game.location, id, game.day),
+          trend: visitComparison?.direction ?? 'flat',
+          visitDeltaPct: visitComparison?.percentChange ?? null,
           seasonLabel: getSeasonModifierLabel(id, game.day),
           sparklineData: getPriceTrend(game.location, id, game.day, 7).map((p) => p.buy),
         }
@@ -185,7 +196,7 @@ export function TownScreen() {
             a.offer.row.buy - b.offer.row.buy ||
             GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
         ),
-    [game.location, game.day, primaryGoods],
+    [game.location, game.day, previousVisitDay, primaryGoods],
   )
 
   const sellEntries = useMemo<SellEntry[]>(
@@ -198,6 +209,10 @@ export function TownScreen() {
         const avgBuy = averageInventoryBuyPrice(game, id)
         const sellDelta =
           offer && avgBuy !== null ? Math.round((offer.row.sell - avgBuy) * 10) / 10 : null
+        const visitComparison =
+          offer && !(bestOffer?.isFallback ?? false)
+            ? getVisitPriceComparison(game.location, id, game.day, previousVisitDay, 'sell')
+            : null
         return {
           id,
           count,
@@ -209,7 +224,8 @@ export function TownScreen() {
           isFallback: bestOffer?.isFallback ?? false,
           demandReason: getTownDemandReason(game.location, id),
           weight,
-          trend: offer && !(bestOffer?.isFallback ?? false) ? getPriceTrendDirection(game.location, id, game.day) : 'flat',
+          trend: visitComparison?.direction ?? 'flat',
+          visitDeltaPct: visitComparison?.percentChange ?? null,
           seasonLabel: getSeasonModifierLabel(id, game.day),
           sparklineData: offer && !(bestOffer?.isFallback ?? false)
             ? getPriceTrend(game.location, id, game.day, 7).map((p) => p.sell)
@@ -221,7 +237,7 @@ export function TownScreen() {
           (b.offer?.row.sell ?? 0) - (a.offer?.row.sell ?? 0) ||
           GOODS[a.id]!.name.localeCompare(GOODS[b.id]!.name),
       ),
-    [cargoGoods, game, wantedGoods],
+    [cargoGoods, game, previousVisitDay, wantedGoods],
   )
 
   function getWhQty(key: string, max: number): number {
@@ -581,7 +597,7 @@ export function TownScreen() {
                 <p className="market-column__empty">Nothing in stock.</p>
               ) : (
                 <ul className="trade-list">
-                  {buyEntries.map(({ id, offer, isPrimary, trend, seasonLabel, sparklineData }) => {
+                  {buyEntries.map(({ id, offer, isPrimary, trend, visitDeltaPct, seasonLabel, sparklineData }) => {
                     const good = GOODS[id]!
                     const key = rowKey('buy', id)
                     const inCart = cart.find((item) => item.kind === 'buy' && item.goodId === id)
@@ -643,14 +659,16 @@ export function TownScreen() {
                           </div>
                           <span className="trade-row__price">
                             Buy <strong>{offer.row.buy}</strong>g
-                            <span
-                              className={`trade-row__trend trade-row__trend--${trend}`}
-                              title={`Price trend: ${trend}`}
-                              onMouseEnter={() => setHoveredSparkline(sparklineKey)}
-                              onMouseLeave={() => setHoveredSparkline(null)}
-                            >
-                              {trendArrow(trend)}
-                            </span>
+                            {visitDeltaPct !== null ? (
+                              <span
+                                className={`trade-row__trend trade-row__trend--${trend}`}
+                                title={`Compared to your last visit${previousVisitDay ? ` on day ${previousVisitDay}` : ''}: ${formatSignedPercent(visitDeltaPct)}`}
+                                onMouseEnter={() => setHoveredSparkline(sparklineKey)}
+                                onMouseLeave={() => setHoveredSparkline(null)}
+                              >
+                                {trendArrow(trend)} {formatSignedPercent(visitDeltaPct)}
+                              </span>
+                            ) : null}
                           </span>
                           {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
                             <Sparkline data={sparklineData} />
@@ -724,6 +742,7 @@ export function TownScreen() {
                       demandReason,
                       weight,
                       trend,
+                      visitDeltaPct,
                       seasonLabel,
                       sparklineData,
                     }) => {
@@ -790,14 +809,16 @@ export function TownScreen() {
                                 </div>
                                 <span className="trade-row__price">
                                   Sell <strong>{offer.row.sell}</strong>g
-                                  <span
-                                    className={`trade-row__trend trade-row__trend--${trend}`}
-                                    title={`Price trend: ${trend}`}
-                                    onMouseEnter={() => setHoveredSparkline(sparklineKey)}
-                                    onMouseLeave={() => setHoveredSparkline(null)}
-                                  >
-                                    {trendArrow(trend)}
-                                  </span>
+                                  {visitDeltaPct !== null ? (
+                                    <span
+                                      className={`trade-row__trend trade-row__trend--${trend}`}
+                                      title={`Compared to your last visit${previousVisitDay ? ` on day ${previousVisitDay}` : ''}: ${formatSignedPercent(visitDeltaPct)}`}
+                                      onMouseEnter={() => setHoveredSparkline(sparklineKey)}
+                                      onMouseLeave={() => setHoveredSparkline(null)}
+                                    >
+                                      {trendArrow(trend)} {formatSignedPercent(visitDeltaPct)}
+                                    </span>
+                                  ) : null}
                                 </span>
                                 {hoveredSparkline === sparklineKey && sparklineData.length > 1 ? (
                                   <Sparkline data={sparklineData} />
@@ -1168,6 +1189,14 @@ function QtyStepper({
       </button>
     </div>
   )
+}
+
+function formatSignedPercent(value: number): string {
+  const prefix = value > 0 ? '+' : value < 0 ? '-' : ''
+  const absValue = Math.abs(value)
+  const percentText =
+    absValue === Math.floor(absValue) ? absValue.toFixed(0) : absValue.toFixed(1)
+  return `${prefix}${percentText}%`
 }
 
 // ── Sparkline ────────────────────────────────────────────────────────────────

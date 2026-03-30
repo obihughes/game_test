@@ -1,5 +1,12 @@
 export { averageInventoryBuyPrice, buyGood, sellGood } from './buySell.ts'
-export { getPriceTrend, getPriceTrendDirection, trendArrow, type PricePoint, type TrendDirection } from './priceHistory.ts'
+export {
+  getPriceTrend,
+  getVisitPriceComparison,
+  trendArrow,
+  type PricePoint,
+  type TrendDirection,
+  type VisitPriceComparison,
+} from './priceHistory.ts'
 export { GOOD_IDS, GOODS, goodWeight, type Good } from './goods.ts'
 export type { PriceRow, TownPriceTable } from './prices.ts'
 export { getEffectivePrice } from './prices.ts'

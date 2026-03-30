@@ -86,6 +86,10 @@ export interface GameState {
   townWarehouses: Partial<Record<TownId, WarehouseState>>
   /** How many times the player has visited each town (incremented on arrival). */
   townVisits: Partial<Record<TownId, number>>
+  /** Most recent day the player arrived in each town. */
+  townLastVisitDay: Partial<Record<TownId, number>>
+  /** Visit day before the current one for each town, used for market comparisons. */
+  townPreviousVisitDay: Partial<Record<TownId, number>>
   /** The last encounter that occurred during travel, cleared when dismissed. */
   lastEncounter: TravelEncounter | null
   /** Branching story flags, quest progress, and NPC relationship state. */

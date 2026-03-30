@@ -1700,7 +1700,9 @@ button.trade-row__btn.small {
 
 /* ── Price trend arrows ───────────────────────────────────────────────────── */
 .trade-row__trend {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
   margin-left: 0.3rem;
   font-size: 0.8rem;
   font-weight: 700;

@@ -33,6 +33,16 @@ export function migrateState(raw: unknown): GameState {
   g = {
     ...g,
     caravan: { ...g.caravan, buffs: caravanBuffs, bonusCapacity },
+    townVisits:
+      g.townVisits && typeof g.townVisits === 'object' ? g.townVisits : { [g.location]: 1 },
+    townLastVisitDay:
+      g.townLastVisitDay && typeof g.townLastVisitDay === 'object'
+        ? g.townLastVisitDay
+        : { [g.location]: g.day },
+    townPreviousVisitDay:
+      g.townPreviousVisitDay && typeof g.townPreviousVisitDay === 'object'
+        ? g.townPreviousVisitDay
+        : {},
     townWarehouses:
       g.townWarehouses && typeof g.townWarehouses === 'object'
         ? Object.fromEntries(

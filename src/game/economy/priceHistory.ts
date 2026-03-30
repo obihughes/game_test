@@ -18,8 +18,8 @@ export function getPriceTrend(
   lookback = 7,
 ): PricePoint[] {
   const points: PricePoint[] = []
-  for (let i = lookback - 1; i >= 0; i--) {
-    const day = Math.max(1, currentDay - i)
+  const startDay = Math.max(1, currentDay - lookback + 1)
+  for (let day = startDay; day <= currentDay; day++) {
     const row = townMarketPriceRow(townId, goodId, day)
     if (row) {
       points.push({ day, buy: row.buy, sell: row.sell })
@@ -30,24 +30,39 @@ export function getPriceTrend(
 
 export type TrendDirection = 'up' | 'down' | 'flat'
 
-/**
- * Compares today's buy price to the 5-day average to determine trend direction.
- */
-export function getPriceTrendDirection(
+export interface VisitPriceComparison {
+  currentPrice: number
+  previousPrice: number
+  percentChange: number
+  direction: TrendDirection
+}
+
+export function getVisitPriceComparison(
   townId: TownId,
   goodId: GoodId,
   currentDay: number,
-): TrendDirection {
-  const history = getPriceTrend(townId, goodId, currentDay, 6)
-  if (history.length < 2) return 'flat'
-  const today = history[history.length - 1]!.buy
-  const past = history.slice(0, -1)
-  const avg = past.reduce((sum, p) => sum + p.buy, 0) / past.length
-  const diff = today - avg
-  const threshold = avg * 0.04
-  if (diff > threshold) return 'up'
-  if (diff < -threshold) return 'down'
-  return 'flat'
+  previousVisitDay: number | undefined,
+  priceKind: 'buy' | 'sell',
+): VisitPriceComparison | null {
+  if (!previousVisitDay || previousVisitDay < 1 || previousVisitDay >= currentDay) return null
+
+  const currentRow = townMarketPriceRow(townId, goodId, currentDay)
+  const previousRow = townMarketPriceRow(townId, goodId, previousVisitDay)
+  const currentPrice = currentRow?.[priceKind] ?? 0
+  const previousPrice = previousRow?.[priceKind] ?? 0
+  if (currentPrice <= 0 || previousPrice <= 0) return null
+
+  const rawPercentChange = ((currentPrice - previousPrice) / previousPrice) * 100
+  const percentChange = Math.round(rawPercentChange * 10) / 10
+  const direction: TrendDirection =
+    currentPrice > previousPrice ? 'up' : currentPrice < previousPrice ? 'down' : 'flat'
+
+  return {
+    currentPrice,
+    previousPrice,
+    percentChange,
+    direction,
+  }
 }
 
 export function trendArrow(dir: TrendDirection): string {
