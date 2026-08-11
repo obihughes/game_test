@@ -33,6 +33,7 @@ export function loadState(): GameState | null {
     state.nextEntityId = data.nextEntityId;
     state.algae = [];
     state.algaeSpawnTimer = BALANCE.ALGAE_SPAWN_INTERVAL;
+    state.food = [];
     state.fertilizerTimer = 0;
     state.fishFeedTimer = 0;
     state.autosaveTimer = 0;

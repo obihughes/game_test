@@ -222,6 +222,16 @@ export function generateProceduralTextures(scene: Phaser.Scene): void {
     }
   }
 
+  if (!scene.textures.exists('pellet')) {
+    const gfx = scene.make.graphics({ x: 0, y: 0 });
+    gfx.fillStyle(0x8d5524, 1);
+    gfx.fillCircle(6, 6, 6);
+    gfx.fillStyle(0xb5651d, 0.8);
+    gfx.fillCircle(5, 5, 3);
+    gfx.generateTexture('pellet', 12, 12);
+    gfx.destroy();
+  }
+
   if (!scene.textures.exists('algae')) {
     const gfx = scene.make.graphics({ x: 0, y: 0 });
     gfx.fillStyle(0x3d8b3d, 0.9);

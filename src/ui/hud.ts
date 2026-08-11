@@ -1,4 +1,6 @@
 import type { GameState } from '../sim/state.ts';
+import { canDropFood } from '../sim/state.ts';
+import { BALANCE } from '../sim/balance.ts';
 
 export class Hud {
   private readonly root: HTMLElement;
@@ -22,7 +24,7 @@ export class Hud {
         <div class="hud-row"><span class="label">Fish</span><span id="hud-fish-count">0</span></div>
         <div class="hud-buffs" id="hud-buffs"></div>
         <button type="button" class="hud-debug-btn" id="hud-add-money">+$100</button>
-        <div class="hud-hint" id="hud-hint">Click a fish to sell it</div>
+        <div class="hud-hint" id="hud-hint">Click open water to feed, click a fish to sell it</div>
       </div>
     `;
     container.appendChild(this.root);
@@ -61,8 +63,14 @@ export class Hud {
     }
     this.buffsEl.textContent = buffs.join(' | ');
 
-    this.hintEl.textContent =
-      'Click a fish to sell it. Algae spawns for tilapia; bass hunt smaller fish.';
+    if (!canDropFood(state)) {
+      this.hintEl.textContent =
+        state.money < BALANCE.PELLET_COST
+          ? 'Not enough money to feed'
+          : 'Max pellets in tank — wait for fish to eat';
+    } else {
+      this.hintEl.textContent = `Click open water to feed ($${BALANCE.PELLET_COST}), click a fish to sell it`;
+    }
   }
 
   destroy(): void {

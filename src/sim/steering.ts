@@ -1,7 +1,7 @@
 import type { Fish } from './fish.ts';
 import { getGrowthOrder } from './fish.ts';
 import { BALANCE } from './balance.ts';
-import type { Algae, GameState } from './state.ts';
+import type { Algae, FoodPellet, GameState } from './state.ts';
 
 function distSq(ax: number, ay: number, bx: number, by: number): number {
   const dx = ax - bx;
@@ -19,6 +19,24 @@ export function findNearestAlgae(fish: Fish, state: GameState): Algae | null {
     if (d < best) {
       best = d;
       nearest = algae;
+    }
+  }
+  return nearest;
+}
+
+/** Nearest dropped pellet within perception radius — any fish can eat these. */
+export function findNearestPellet(
+  fish: Fish,
+  state: GameState,
+): FoodPellet | null {
+  let nearest: FoodPellet | null = null;
+  let best = BALANCE.FISH_PERCEPTION_RADIUS ** 2;
+
+  for (const pellet of state.food) {
+    const d = distSq(fish.x, fish.y, pellet.x, pellet.y);
+    if (d < best) {
+      best = d;
+      nearest = pellet;
     }
   }
   return nearest;

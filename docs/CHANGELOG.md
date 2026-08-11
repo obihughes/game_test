@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 — 2026-08-10
+
+### Fixed — Feeding and growth balance
+
+- Restored manual pellet feeding (click open water, $5/pellet, up to 8 on screen): any fish — tilapia or bass — can now seek and eat pellets to satisfy hunger, addressing the gap where the only "feeding" action (the Fish Feed buff) grew fish without ever reducing hunger
+- Growth is now decoupled from raw meal count: each meal only grants partial growth progress (`GROWTH_PER_MEAL`), and the thresholds to reach medium/large were raised, so fish need roughly 12 and 30 meals respectively instead of 3 and 7 — no more growing a full stage from a couple of feedings
+- Fish Feed buff's passive growth rate cut 10× (0.5 → 0.05 progress/sec) so it acts as a minor boost rather than an instant-grow button, and it still does not reduce hunger — pellets/algae/prey are the only way to do that
+- Hunger rate more than halved (1.2 → 0.5 points/sec), so fish take roughly a minute to go from fed to hungry and about three minutes total before starving to death
+- Click priority is now: remove dead fish → sell a living fish (click directly on it) → otherwise drop a pellet at the click position
+
 ## 0.2.0 — 2026-08-10
 
 ### Changed — Farm mechanic overhaul

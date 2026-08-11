@@ -86,10 +86,9 @@ export function updateHungerStage(fish: Fish): void {
 }
 
 export function advanceGrowth(fish: Fish): void {
-  const effectiveMeals = fish.mealsEaten + Math.floor(fish.growthProgress);
-  if (effectiveMeals >= BALANCE.MEALS_TO_LARGE) {
+  if (fish.growthProgress >= BALANCE.GROWTH_TO_LARGE) {
     fish.growthStage = 'large';
-  } else if (effectiveMeals >= BALANCE.MEALS_TO_MEDIUM) {
+  } else if (fish.growthProgress >= BALANCE.GROWTH_TO_MEDIUM) {
     fish.growthStage = 'medium';
   }
 }

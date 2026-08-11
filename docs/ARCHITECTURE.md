@@ -16,11 +16,11 @@ flowchart LR
 ## Data flow
 
 1. **TankScene.update()** calls `advance(state, dt)` each frame.
-2. Simulation updates fish AI, hunger, algae spawning/lifetime, tilapia eating algae, bass hunting smaller fish, fish feed passive growth, and buff timers — no Phaser imports.
+2. Simulation updates fish AI, hunger, pellet sinking/lifetime, algae spawning/lifetime, pellet/algae eating, bass hunting smaller fish, fish feed passive growth, and buff timers — no Phaser imports.
 3. **TankScene** reads entity positions and syncs Phaser sprites by entity `id`.
-4. Pointer clicks call sim functions (`sellFish`, `removeDeadFish`, shop purchase actions).
+4. Pointer clicks call sim functions in priority order: remove a dead fish, sell a living fish, otherwise drop a food pellet at the click position (`dropFood`).
 5. HUD reads `GameState` every frame; the Shop re-renders only when money or buffs change (after purchases or sales) so button elements are not destroyed mid-click.
-6. **save.ts** serializes fish, money, and entity IDs to `localStorage` every 10 seconds (algae and buff timers are not persisted — they reset on load).
+6. **save.ts** serializes fish, money, and entity IDs to `localStorage` every 10 seconds (pellets, algae, and buff timers are not persisted — they reset on load).
 
 ## Page layout and scale
 

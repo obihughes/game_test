@@ -13,26 +13,26 @@
 
 | File | Purpose |
 |------|---------|
-| [balance.ts](../src/sim/balance.ts) | All tunable gameplay numbers (prices, speeds, hunger rates, buffs) |
-| [state.ts](../src/sim/state.ts) | GameState, entity creation, algae/buff state, shop actions |
+| [balance.ts](../src/sim/balance.ts) | All tunable gameplay numbers (prices, speeds, hunger rates, growth rates, buffs) |
+| [state.ts](../src/sim/state.ts) | GameState, entity creation, pellet/algae/buff state, shop actions |
 | [fish.ts](../src/sim/fish.ts) | Fish entity type, growth and hunger helpers |
-| [steering.ts](../src/sim/steering.ts) | Wander, seek, speed limit, boundary clamping, nearest-algae/prey search |
-| [tick.ts](../src/sim/tick.ts) | `advance()` — main simulation loop per frame (algae spawn, tilapia eating, bass hunting, fish feed) |
+| [steering.ts](../src/sim/steering.ts) | Wander, seek, speed limit, boundary clamping, nearest-pellet/algae/prey search |
+| [tick.ts](../src/sim/tick.ts) | `advance()` — main simulation loop per frame (pellet/algae eating, bass hunting, fish feed, growth) |
 | [save.ts](../src/sim/save.ts) | localStorage serialize/load and autosave helpers |
 
 ## Rendering (`src/render/`)
 
 | File | Purpose |
 |------|---------|
-| [TankScene.ts](../src/render/TankScene.ts) | Phaser scene: sync sprites, input (sell fish, remove dead), UI hooks |
-| [textures.ts](../src/render/textures.ts) | Procedural fish textures (tilapia, bass) with animated tail frames, shading, and algae texture; hunger/death applied as sprite tints |
+| [TankScene.ts](../src/render/TankScene.ts) | Phaser scene: sync sprites, input (feed on open water, sell on fish, remove dead), UI hooks |
+| [textures.ts](../src/render/textures.ts) | Procedural fish textures (tilapia, bass) with animated tail frames, shading, plus pellet and algae textures; hunger/death applied as sprite tints |
 | [fx.ts](../src/render/fx.ts) | Bubbles, eat pop, sell effect |
 
 ## UI (`src/ui/`)
 
 | File | Purpose |
 |------|---------|
-| [hud.ts](../src/ui/hud.ts) | Money counter, fish counts, active buff timers, debug +$100 button |
+| [hud.ts](../src/ui/hud.ts) | Money counter, fish counts, active buff timers, feed/sell hint, debug +$100 button |
 | [shop.ts](../src/ui/shop.ts) | Collapsible buy fish (tilapia/bass) and buff (fertilizer/fish feed) buttons |
 
 ## Styles

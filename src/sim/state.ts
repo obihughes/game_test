@@ -9,11 +9,20 @@ export interface Algae {
   lifetime: number;
 }
 
+export interface FoodPellet {
+  id: number;
+  x: number;
+  y: number;
+  lifetime: number;
+}
+
 export interface GameState {
   money: number;
   fish: import('./fish.ts').Fish[];
   algae: Algae[];
   algaeSpawnTimer: number;
+  /** Manually dropped fish food — any fish can eat these to satisfy hunger. */
+  food: FoodPellet[];
   /** Seconds remaining on the fertilizer buff; 0 means inactive. */
   fertilizerTimer: number;
   /** Seconds remaining on the fish feed buff; 0 means inactive. */
@@ -32,6 +41,7 @@ export function createInitialState(): GameState {
     fish: [],
     algae: [],
     algaeSpawnTimer: BALANCE.ALGAE_SPAWN_INTERVAL,
+    food: [],
     fertilizerTimer: 0,
     fishFeedTimer: 0,
     nextEntityId: 1,
@@ -47,6 +57,26 @@ export function createInitialState(): GameState {
   state.fish.push(starter);
   setNextFishId(state.nextEntityId);
   return state;
+}
+
+export function canDropFood(state: GameState): boolean {
+  return (
+    state.money >= BALANCE.PELLET_COST &&
+    state.food.length < BALANCE.MAX_PELLETS
+  );
+}
+
+export function dropFood(state: GameState, x: number, y: number): boolean {
+  if (!canDropFood(state)) return false;
+
+  state.money -= BALANCE.PELLET_COST;
+  state.food.push({
+    id: allocId(state),
+    x: Math.max(20, Math.min(BALANCE.TANK_WIDTH - 20, x)),
+    y: Math.max(20, Math.min(BALANCE.TANK_HEIGHT - 60, y)),
+    lifetime: BALANCE.PELLET_LIFETIME,
+  });
+  return true;
 }
 
 export function isFertilizerActive(state: GameState): boolean {

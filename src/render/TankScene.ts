@@ -5,6 +5,7 @@ import {
   createInitialState,
   removeDeadFish,
   sellFish,
+  dropFood,
   buyFish,
   buyFertilizer,
   buyFishFeed,
@@ -30,10 +31,12 @@ export class TankScene extends Phaser.Scene {
   private state!: GameState;
   private fishSprites = new Map<number, Phaser.GameObjects.Image>();
   private algaeSprites = new Map<number, Phaser.GameObjects.Image>();
+  private foodSprites = new Map<number, Phaser.GameObjects.Image>();
   private fx!: FxManager;
   private hud!: Hud;
   private shop!: Shop;
   private prevAlgaeCount = 0;
+  private prevFoodCount = 0;
   constructor() {
     super('TankScene');
   }
@@ -43,6 +46,7 @@ export class TankScene extends Phaser.Scene {
 
     this.state = loadState() ?? createInitialState();
     this.prevAlgaeCount = this.state.algae.length;
+    this.prevFoodCount = this.state.food.length;
 
     this.drawTankBackground();
     this.fx = new FxManager(this);
@@ -133,6 +137,11 @@ export class TankScene extends Phaser.Scene {
         return;
       }
     }
+
+    if (dropFood(this.state, x, y)) {
+      this.playBeep(440, 0.05);
+      this.shop.update();
+    }
   }
 
   update(_time: number, delta: number): void {
@@ -142,10 +151,14 @@ export class TankScene extends Phaser.Scene {
     this.fx.update(dt, BALANCE.TANK_WIDTH, BALANCE.TANK_HEIGHT);
     this.hud.update(this.state);
 
-    if (this.state.algae.length < this.prevAlgaeCount) {
+    if (
+      this.state.algae.length < this.prevAlgaeCount ||
+      this.state.food.length < this.prevFoodCount
+    ) {
       this.playBeep(660, 0.06);
     }
     this.prevAlgaeCount = this.state.algae.length;
+    this.prevFoodCount = this.state.food.length;
 
     if (shouldAutosave(this.state)) {
       saveState(this.state);
@@ -156,6 +169,7 @@ export class TankScene extends Phaser.Scene {
   private syncSprites(): void {
     this.syncFish();
     this.syncAlgae();
+    this.syncFood();
   }
 
   private syncFish(): void {
@@ -237,6 +251,26 @@ export class TankScene extends Phaser.Scene {
       if (!activeIds.has(id)) {
         sprite.destroy();
         this.algaeSprites.delete(id);
+      }
+    }
+  }
+
+  private syncFood(): void {
+    const activeIds = new Set(this.state.food.map((f) => f.id));
+
+    for (const pellet of this.state.food) {
+      let sprite = this.foodSprites.get(pellet.id);
+      if (!sprite) {
+        sprite = this.add.image(pellet.x, pellet.y, 'pellet').setDepth(8);
+        this.foodSprites.set(pellet.id, sprite);
+      }
+      sprite.setPosition(pellet.x, pellet.y);
+    }
+
+    for (const [id, sprite] of this.foodSprites) {
+      if (!activeIds.has(id)) {
+        sprite.destroy();
+        this.foodSprites.delete(id);
       }
     }
   }

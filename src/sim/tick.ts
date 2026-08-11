@@ -8,6 +8,7 @@ import {
   applySeek,
   applyWander,
   findNearestAlgae,
+  findNearestPellet,
   findNearestPrey,
   limitSpeed,
   moveFish,
@@ -19,6 +20,15 @@ function distSq(ax: number, ay: number, bx: number, by: number): number {
   const dx = ax - bx;
   const dy = ay - by;
   return dx * dx + dy * dy;
+}
+
+/** Applies the shared reward for any meal — hunger relief plus partial growth. */
+function feedFish(fish: Fish): void {
+  fish.hunger = Math.max(0, fish.hunger - BALANCE.MEAL_SATISFACTION);
+  fish.mealsEaten++;
+  fish.growthProgress += BALANCE.GROWTH_PER_MEAL;
+  advanceGrowth(fish);
+  updateHungerStage(fish);
 }
 
 function updateFish(fish: Fish, state: GameState, dt: number): void {
@@ -40,20 +50,20 @@ function updateFish(fish: Fish, state: GameState, dt: number): void {
   }
 
   if (fish.hungerStage !== 'fed') {
-    if (fish.species === 'bass') {
-      const prey = findNearestPrey(fish, state);
-      if (prey) {
-        applySeek(fish, prey.x, prey.y, dt);
-      } else {
-        applyWander(fish, dt);
+    // Dropped pellets can feed any species; fall back to species-specific food.
+    let target: { x: number; y: number } | null = findNearestPellet(fish, state);
+    if (!target) {
+      if (fish.species === 'tilapia') {
+        target = findNearestAlgae(fish, state);
+      } else if (fish.species === 'bass') {
+        target = findNearestPrey(fish, state);
       }
+    }
+
+    if (target) {
+      applySeek(fish, target.x, target.y, dt);
     } else {
-      const target = findNearestAlgae(fish, state);
-      if (target) {
-        applySeek(fish, target.x, target.y, dt);
-      } else {
-        applyWander(fish, dt);
-      }
+      applyWander(fish, dt);
     }
   } else {
     applyWander(fish, dt);
@@ -61,6 +71,20 @@ function updateFish(fish: Fish, state: GameState, dt: number): void {
 
   limitSpeed(fish);
   moveFish(fish, dt);
+}
+
+function tryEatPellet(fish: Fish, state: GameState): void {
+  if (fish.dead || fish.hungerStage === 'fed') return;
+
+  const eatRadiusSq = BALANCE.PELLET_EAT_RADIUS ** 2;
+  for (let i = state.food.length - 1; i >= 0; i--) {
+    const pellet = state.food[i];
+    if (distSq(fish.x, fish.y, pellet.x, pellet.y) <= eatRadiusSq) {
+      state.food.splice(i, 1);
+      feedFish(fish);
+      return;
+    }
+  }
 }
 
 function tryEatAlgae(fish: Fish, state: GameState): void {
@@ -73,10 +97,7 @@ function tryEatAlgae(fish: Fish, state: GameState): void {
     const algae = state.algae[i];
     if (distSq(fish.x, fish.y, algae.x, algae.y) <= eatRadiusSq) {
       state.algae.splice(i, 1);
-      fish.hunger = Math.max(0, fish.hunger - BALANCE.MEAL_SATISFACTION);
-      fish.mealsEaten++;
-      advanceGrowth(fish);
-      updateHungerStage(fish);
+      feedFish(fish);
       return;
     }
   }
@@ -92,10 +113,18 @@ function tryHuntFish(predator: Fish, state: GameState): void {
   if (distSq(predator.x, predator.y, prey.x, prey.y) > eatRadiusSq) return;
 
   prey.removePending = true;
-  predator.hunger = Math.max(0, predator.hunger - BALANCE.MEAL_SATISFACTION);
-  predator.mealsEaten++;
-  advanceGrowth(predator);
-  updateHungerStage(predator);
+  feedFish(predator);
+}
+
+function updatePellets(state: GameState, dt: number): void {
+  for (let i = state.food.length - 1; i >= 0; i--) {
+    const pellet = state.food[i];
+    pellet.y += BALANCE.PELLET_SINK_SPEED * dt;
+    pellet.lifetime -= dt;
+    if (pellet.lifetime <= 0 || pellet.y > BALANCE.TANK_HEIGHT - 20) {
+      state.food.splice(i, 1);
+    }
+  }
 }
 
 function spawnAlgae(state: GameState, dt: number): void {
@@ -148,10 +177,12 @@ function updateBuffTimers(state: GameState, dt: number): void {
 export function advance(state: GameState, dt: number): void {
   for (const fish of state.fish) {
     updateFish(fish, state, dt);
+    tryEatPellet(fish, state);
     tryEatAlgae(fish, state);
     tryHuntFish(fish, state);
   }
 
+  updatePellets(state, dt);
   spawnAlgae(state, dt);
   updateAlgae(state, dt);
   applyFishFeed(state, dt);
