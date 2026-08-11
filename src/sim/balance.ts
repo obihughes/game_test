@@ -20,9 +20,29 @@ export const BALANCE = {
 
   FISH_BASE_SPEED: 55,
   FISH_WANDER_STRENGTH: 80,
+  FISH_WANDER_ARRIVE_RADIUS: 65,
+  /** Inset from tank edges when picking idle swim destinations. */
+  FISH_WANDER_TARGET_PADDING: 70,
+  /** Per-frame velocity multiplier applied before new steering forces, smooths turns. */
+  FISH_WANDER_DRAG: 0.97,
   FISH_SEEK_STRENGTH: 120,
   FISH_PERCEPTION_RADIUS: 150,
   FISH_BOUNDARY_MARGIN: 55,
+
+  // Hungry/starving fish search further afield for food than a fed fish
+  // idly bumping into it. Starving fish effectively search the whole tank.
+  HUNGRY_PERCEPTION_MULTIPLIER: 2.5,
+  STARVING_PERCEPTION_MULTIPLIER: 999,
+  STARVING_SEEK_MULTIPLIER: 1.8,
+
+  // Hungry fish swim faster out of urgency; starving fish are frantic.
+  HUNGRY_SPEED_MULTIPLIER: 1.25,
+  STARVING_SPEED_MULTIPLIER: 1.5,
+
+  // Prey (smaller fish) detect and dart away from nearby bass.
+  FLEE_DETECTION_RADIUS: 120,
+  FLEE_STRENGTH: 150,
+  FLEE_SPEED_BOOST: 1.3,
 
   // Growth is decoupled from raw meal count: each meal only adds a partial
   // amount of growth progress, so fish need many feeding cycles to grow.
@@ -33,7 +53,6 @@ export const BALANCE = {
   // Algae — spawns automatically in the tank as tilapia food.
   ALGAE_SPAWN_INTERVAL: 3,
   ALGAE_MAX: 15,
-  ALGAE_LIFETIME: 20,
   ALGAE_EAT_RADIUS: 26,
 
   // Fertilizer — timed buff that speeds up algae spawning.
@@ -52,6 +71,14 @@ export const BALANCE = {
   BASS_HUNT_RADIUS: 180,
   BASS_EAT_RADIUS: 30,
 
+  // Reproduction — two well-fed, grown fish of the same species that swim
+  // close together will produce a new small fish, up to a population cap.
+  BREED_COOLDOWN: 30,
+  BREED_MIN_STAGE: 'medium' as GrowthStage,
+  BREED_PROXIMITY: 60,
+  BREED_MAX_HUNGER: 50,
+  MAX_FISH: 20,
+
   FISH_PRICES: { tilapia: 15, bass: 40 } as const,
   SELL_PRICES: {
     tilapia: { small: 10, medium: 30, large: 75 },
@@ -59,6 +86,9 @@ export const BALANCE = {
   } as const,
 
   AUTOSAVE_INTERVAL: 10,
+
+  // Fast forward — multiplies simulation delta time while the HUD toggle is on.
+  FAST_FORWARD_MULTIPLIER: 4,
 } as const;
 
 export type FishSpecies = keyof typeof BALANCE.FISH_PRICES;

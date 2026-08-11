@@ -35,8 +35,12 @@ export class TankScene extends Phaser.Scene {
   private fx!: FxManager;
   private hud!: Hud;
   private shop!: Shop;
+  private fastForward = false;
   private prevAlgaeCount = 0;
   private prevFoodCount = 0;
+  private audioCtx: AudioContext | null = null;
+  /** Bumped once per frame; sprites tagged with a stale tick are pruned without allocating a Set. */
+  private frameTick = 0;
   constructor() {
     super('TankScene');
   }
@@ -52,7 +56,13 @@ export class TankScene extends Phaser.Scene {
     this.fx = new FxManager(this);
 
     const uiOverlay = document.getElementById('ui-overlay')!;
-    this.hud = new Hud(uiOverlay, () => this.state, () => this.shop.update());
+    this.hud = new Hud(uiOverlay, () => this.state, {
+      onAddMoney: () => this.shop.update(),
+      onToggleFastForward: () => {
+        this.fastForward = !this.fastForward;
+      },
+      getFastForward: () => this.fastForward,
+    });
     this.shop = new Shop(uiOverlay, () => this.state, {
       onBuyFish: (species: FishSpecies) => {
         if (buyFish(this.state, species)) {
@@ -97,14 +107,30 @@ export class TankScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Lazily creates a single shared AudioContext and reuses it for every
+   * beep. Constructing a new AudioContext per call is expensive (it spins
+   * up an audio processing thread), and beeps fire frequently while hungry
+   * fish are actively eating — reusing one context avoids that overhead.
+   */
+  private getAudioContext(): AudioContext | null {
+    if (this.audioCtx) return this.audioCtx;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    if (!AudioCtx) return null;
+    this.audioCtx = new AudioCtx();
+    return this.audioCtx;
+  }
+
   private playBeep(freq: number, duration = 0.08): void {
     try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx = this.getAudioContext();
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        void ctx.resume();
+      }
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -114,7 +140,6 @@ export class TankScene extends Phaser.Scene {
       osc.start();
       gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
       osc.stop(ctx.currentTime + duration);
-      setTimeout(() => void ctx.close(), (duration + 0.1) * 1000);
     } catch {
       // Audio may be blocked until user gesture.
     }
@@ -146,9 +171,10 @@ export class TankScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     const dt = delta / 1000;
-    advance(this.state, dt);
+    const simDt = this.fastForward ? dt * BALANCE.FAST_FORWARD_MULTIPLIER : dt;
+    advance(this.state, simDt);
     this.syncSprites();
-    this.fx.update(dt, BALANCE.TANK_WIDTH, BALANCE.TANK_HEIGHT);
+    this.fx.update(simDt, BALANCE.TANK_WIDTH, BALANCE.TANK_HEIGHT);
     this.hud.update(this.state);
 
     if (
@@ -167,14 +193,13 @@ export class TankScene extends Phaser.Scene {
   }
 
   private syncSprites(): void {
+    this.frameTick++;
     this.syncFish();
     this.syncAlgae();
     this.syncFood();
   }
 
   private syncFish(): void {
-    const activeIds = new Set(this.state.fish.map((f) => f.id));
-
     for (const fish of this.state.fish) {
       const key = getFishTextureKey(fish);
       let sprite = this.fishSprites.get(fish.id);
@@ -223,10 +248,12 @@ export class TankScene extends Phaser.Scene {
       if (fish.dead) {
         sprite.setAngle(90);
       }
+
+      sprite.setData('frameTick', this.frameTick);
     }
 
     for (const [id, sprite] of this.fishSprites) {
-      if (!activeIds.has(id)) {
+      if (sprite.getData('frameTick') !== this.frameTick) {
         sprite.destroy();
         this.fishSprites.delete(id);
       }
@@ -234,8 +261,6 @@ export class TankScene extends Phaser.Scene {
   }
 
   private syncAlgae(): void {
-    const activeIds = new Set(this.state.algae.map((a) => a.id));
-
     for (const algae of this.state.algae) {
       let sprite = this.algaeSprites.get(algae.id);
       if (!sprite) {
@@ -243,12 +268,11 @@ export class TankScene extends Phaser.Scene {
         this.algaeSprites.set(algae.id, sprite);
       }
       sprite.setPosition(algae.x, algae.y);
-      // Fade slightly as algae nears the end of its lifetime.
-      sprite.setAlpha(algae.lifetime < 3 ? 0.4 + (algae.lifetime / 3) * 0.6 : 1);
+      sprite.setData('frameTick', this.frameTick);
     }
 
     for (const [id, sprite] of this.algaeSprites) {
-      if (!activeIds.has(id)) {
+      if (sprite.getData('frameTick') !== this.frameTick) {
         sprite.destroy();
         this.algaeSprites.delete(id);
       }
@@ -256,8 +280,6 @@ export class TankScene extends Phaser.Scene {
   }
 
   private syncFood(): void {
-    const activeIds = new Set(this.state.food.map((f) => f.id));
-
     for (const pellet of this.state.food) {
       let sprite = this.foodSprites.get(pellet.id);
       if (!sprite) {
@@ -265,10 +287,11 @@ export class TankScene extends Phaser.Scene {
         this.foodSprites.set(pellet.id, sprite);
       }
       sprite.setPosition(pellet.x, pellet.y);
+      sprite.setData('frameTick', this.frameTick);
     }
 
     for (const [id, sprite] of this.foodSprites) {
-      if (!activeIds.has(id)) {
+      if (sprite.getData('frameTick') !== this.frameTick) {
         sprite.destroy();
         this.foodSprites.delete(id);
       }
@@ -280,5 +303,9 @@ export class TankScene extends Phaser.Scene {
     this.fx.destroy();
     this.hud.destroy();
     this.shop.destroy();
+    if (this.audioCtx) {
+      void this.audioCtx.close();
+      this.audioCtx = null;
+    }
   }
 }

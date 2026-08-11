@@ -16,8 +16,8 @@
 | [balance.ts](../src/sim/balance.ts) | All tunable gameplay numbers (prices, speeds, hunger rates, growth rates, buffs) |
 | [state.ts](../src/sim/state.ts) | GameState, entity creation, pellet/algae/buff state, shop actions |
 | [fish.ts](../src/sim/fish.ts) | Fish entity type, growth and hunger helpers |
-| [steering.ts](../src/sim/steering.ts) | Wander, seek, speed limit, boundary clamping, nearest-pellet/algae/prey search |
-| [tick.ts](../src/sim/tick.ts) | `advance()` — main simulation loop per frame (pellet/algae eating, bass hunting, fish feed, growth) |
+| [steering.ts](../src/sim/steering.ts) | Wander (forward-biased interior waypoint cruise), seek, flee (predator avoidance), speed limit (scales with hunger/fleeing), boundary clamping, nearest-pellet/algae/prey/predator search (radius scales with hunger stage) |
+| [tick.ts](../src/sim/tick.ts) | `advance()` — main simulation loop per frame (predator avoidance, pellet/algae eating, bass hunting, breeding, fish feed, growth) |
 | [save.ts](../src/sim/save.ts) | localStorage serialize/load and autosave helpers |
 
 ## Rendering (`src/render/`)
@@ -32,7 +32,7 @@
 
 | File | Purpose |
 |------|---------|
-| [hud.ts](../src/ui/hud.ts) | Money counter, fish counts, active buff timers, feed/sell hint, debug +$100 button |
+| [hud.ts](../src/ui/hud.ts) | Money counter, fish counts, active buff timers, fast-forward toggle, feed/sell hint, debug +$100 button |
 | [shop.ts](../src/ui/shop.ts) | Collapsible buy fish (tilapia/bass) and buff (fertilizer/fish feed) buttons |
 
 ## Styles

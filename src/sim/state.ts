@@ -6,7 +6,6 @@ export interface Algae {
   id: number;
   x: number;
   y: number;
-  lifetime: number;
 }
 
 export interface FoodPellet {

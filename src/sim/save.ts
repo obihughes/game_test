@@ -29,7 +29,8 @@ export function loadState(): GameState | null {
     const state = createInitialState();
     const starterFish = state.fish;
     state.money = data.money;
-    state.fish = data.fish;
+    // Older saves predate breedCooldown — default missing fish to ready-to-breed.
+    state.fish = data.fish.map((f) => ({ ...f, breedCooldown: f.breedCooldown ?? 0 }));
     state.nextEntityId = data.nextEntityId;
     state.algae = [];
     state.algaeSpawnTimer = BALANCE.ALGAE_SPAWN_INTERVAL;

@@ -137,12 +137,45 @@ body {
   transition: filter 0.1s;
 }
 
+.hud-speed-btn {
+  pointer-events: auto;
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 3px 6px;
+  background: rgba(42, 122, 176, 0.5);
+  border: 1px solid #3d9ee0;
+  border-radius: 4px;
+  color: #a8d4f0;
+  font-size: 0.6rem;
+  cursor: pointer;
+  font-family: inherit;
+  transition: filter 0.1s, background 0.1s, border-color 0.1s;
+}
+
+.hud-speed-btn:hover {
+  filter: brightness(1.2);
+}
+
+.hud-speed-btn.active {
+  background: rgba(255, 215, 0, 0.25);
+  border-color: #ffd700;
+  color: #ffe680;
+  font-weight: 600;
+}
+
 .hud-debug-btn:hover {
   filter: brightness(1.2);
 }
 
 @media (min-width: 900px) {
   .hud-debug-btn {
+    margin-top: 6px;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+  }
+
+  .hud-speed-btn {
     margin-top: 6px;
     padding: 4px 8px;
     font-size: 0.65rem;

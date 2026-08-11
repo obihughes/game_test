@@ -1,5 +1,61 @@
 # Changelog
 
+## 0.4.0 — 2026-08-11
+
+### Changed — Smoother swim paths
+
+- Idle wander targets used to be picked completely at random anywhere in the tank interior, so fed fish would frequently reverse direction and zigzag. New targets are now biased into a forward-facing cone (`WANDER_FORWARD_CONE`) based on the fish's current heading, so cruising reads as sweeping arcs instead of random darting
+- Random jitter that nudges heading each frame was toned down (angular jitter `1.5 → 0.6`, steering contribution `0.12/0.08 → 0.05/0.04`) and a new per-frame drag (`FISH_WANDER_DRAG`, 0.97) smooths out direction changes so turns feel gradual rather than snapped
+- Arrival radius for wander targets raised from 45px to 65px so fish begin turning toward their next destination earlier, avoiding abrupt stop-and-turn moments
+
+### Added — Predator avoidance
+
+- Smaller fish now notice nearby bass within `FLEE_DETECTION_RADIUS` (120px) and steer away via a new `applyFlee()` steering force — previously prey had zero awareness of predators and only "escaped" by chance
+- Inside half the detection radius (60px), fleeing fully overrides food-seeking and wandering; beyond that, flee steering is blended in alongside normal behavior so a hungry fish still drifts toward food while easing away from danger
+- Fleeing grants a temporary speed boost (`FLEE_SPEED_BOOST`, 1.3×) so the getaway is visibly urgent
+
+### Added — Hunger affects swim speed
+
+- Fish now swim faster as they get hungrier: `HUNGRY_SPEED_MULTIPLIER` (1.25×) and `STARVING_SPEED_MULTIPLIER` (1.5×) raise the speed cap in `limitSpeed()`, which previously capped every fish at the same base speed regardless of hunger stage
+- Speed boosts from hunger and fleeing don't stack multiplicatively — `limitSpeed()` takes the larger of the two multipliers so a starving fish that's also fleeing doesn't move unrealistically fast
+
+## 0.3.1 — 2026-08-11
+
+### Fixed — Lag spike when fish become hungry
+
+- Each hungry/starving fish was scanning pellets/algae/prey **twice per frame** — once in `updateFish` for steering, once more in separate `tryEatPellet`/`tryEatAlgae`/`tryHuntFish` passes for eating. These are now merged into a single search in `tick.ts`'s `updateFish`, reusing the steering target for the eat-range check
+- All fish previously started at a fixed `hunger: 10` and increased at the same rate, so a batch of fish would all cross the hungry threshold on the same frame, spiking search cost all at once ("thundering herd"). Starting hunger is now randomized (5–15) to spread out the transition
+- `TankScene.playBeep()` created a brand new `AudioContext` on every call — expensive, and frequent while hungry fish are actively eating. Now a single `AudioContext` is created lazily and reused for the scene's lifetime
+- `syncFish`/`syncAlgae`/`syncFood` allocated a new `Set` (via `.map()`) every frame just to prune stale sprites; replaced with a per-frame tick tag stored on each sprite's data, avoiding the allocation
+- `Hud.update()` ran two `Array.filter()` passes over all fish and rewrote `textContent` on every DOM node every frame regardless of change; now counts fish in one loop and only touches the DOM when a value actually changes
+
+## 0.3.0 — 2026-08-11
+
+### Fixed — Idle fish stuck at tank edges
+
+- Fed fish no longer ping-pong along the walls — they now cruise toward random interior waypoints and pick a new one on arrival or after hitting a boundary
+
+### Added — Fast forward
+
+- HUD **Fast Forward** toggle runs the simulation at 4× speed (hunger, growth, spawning, buff timers, and autosave all scale together; clicks stay at normal speed)
+
+### Changed — Algae persistence
+
+- Algae no longer despawn on a timer — they persist until a tilapia eats them (removes per-frame lifetime updates)
+
+### Fixed — Hungry fish couldn't find food across the tank
+
+- Tilapia searching for algae and bass searching for prey only looked within a fixed radius (150px/180px) — far smaller than the 800×600 tank — so hungry fish often couldn't "see" food that existed elsewhere and just wandered instead of eating
+- Search radius now scales with hunger stage: hungry fish search 2.5× further, and starving fish search the *entire tank*, guaranteeing they'll head for any available food/prey instead of starving next to it
+- Starving fish now also seek food 1.8× more aggressively (`STARVING_SEEK_MULTIPLIER`) so they visibly race toward it instead of drifting
+
+### Added — Reproduction
+
+- Two same-species fish that are both grown (medium+), well-fed (hunger ≤ 50), and off cooldown will breed automatically when they swim within 60px of each other, producing a new small fish at their midpoint
+- Each fish has a 30s cooldown after breeding before it can breed again
+- Total tank population is capped at 20 fish (`MAX_FISH`) — breeding pauses at the cap
+- New `breedCooldown` field added to the `Fish` entity; old saves default it to 0 (ready to breed) on load
+
 ## 0.2.1 — 2026-08-10
 
 ### Fixed — Feeding and growth balance

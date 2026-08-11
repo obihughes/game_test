@@ -14,8 +14,13 @@ export interface Fish {
   mealsEaten: number;
   /** Fractional meals accumulated from passive sources like fish feed. */
   growthProgress: number;
+  /** Seconds remaining before this fish can breed again; 0 means ready. */
+  breedCooldown: number;
   swimPhase: number;
   wanderAngle: number;
+  /** Idle cruise destination; optional for older saves. */
+  wanderTargetX?: number;
+  wanderTargetY?: number;
   dead: boolean;
   removePending: boolean;
 }
@@ -28,6 +33,7 @@ export function createFish(
   y: number,
   id?: number,
 ): Fish {
+  const pad = BALANCE.FISH_BOUNDARY_MARGIN + BALANCE.FISH_WANDER_TARGET_PADDING;
   return {
     id: id ?? nextFishId++,
     species,
@@ -36,12 +42,17 @@ export function createFish(
     y,
     vx: (Math.random() - 0.5) * BALANCE.FISH_BASE_SPEED,
     vy: (Math.random() - 0.5) * BALANCE.FISH_BASE_SPEED * 0.5,
-    hunger: 10,
+    // Randomized so fish bought together don't all cross the hunger
+    // threshold on the same frame, which would spike per-frame search cost.
+    hunger: 5 + Math.random() * 10,
     hungerStage: 'fed',
     mealsEaten: 0,
     growthProgress: 0,
+    breedCooldown: 0,
     swimPhase: Math.random() * Math.PI * 2,
     wanderAngle: Math.random() * Math.PI * 2,
+    wanderTargetX: pad + Math.random() * (BALANCE.TANK_WIDTH - 2 * pad),
+    wanderTargetY: pad + Math.random() * (BALANCE.TANK_HEIGHT - 2 * pad),
     dead: false,
     removePending: false,
   };
