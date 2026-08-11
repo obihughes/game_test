@@ -67,17 +67,44 @@ export const BALANCE = {
   FISH_FEED_DURATION: 45,
   FISH_FEED_GROWTH_RATE: 0.05,
 
+  // Auto feeder — one-time unlock, then periodically drops pellets on its
+  // own (still paying PELLET_COST per pellet) at a player-configurable
+  // amount/frequency.
+  AUTO_FEEDER_UNLOCK_COST: 100,
+  AUTO_FEEDER_DEFAULT_AMOUNT: 2,
+  AUTO_FEEDER_DEFAULT_FREQUENCY: 15,
+  AUTO_FEEDER_MIN_AMOUNT: 1,
+  AUTO_FEEDER_MAX_AMOUNT: 5,
+  AUTO_FEEDER_MIN_FREQUENCY: 5,
+  AUTO_FEEDER_MAX_FREQUENCY: 60,
+
+  // Auto fertilizer — one-time unlock, then periodically re-applies the
+  // fertilizer buff (still paying FERTILIZER_COST per application) at a
+  // player-configurable frequency.
+  AUTO_FERTILIZER_UNLOCK_COST: 150,
+  AUTO_FERTILIZER_DEFAULT_FREQUENCY: 65,
+  AUTO_FERTILIZER_MIN_FREQUENCY: 30,
+  AUTO_FERTILIZER_MAX_FREQUENCY: 120,
+
   // Bass predation.
   BASS_HUNT_RADIUS: 180,
   BASS_EAT_RADIUS: 30,
 
   // Reproduction — two well-fed, grown fish of the same species that swim
   // close together will produce a new small fish, up to a population cap.
+  // Tilapia are prolific breeders: they can reproduce from the small stage
+  // and have a shorter cooldown than bass.
   BREED_COOLDOWN: 30,
   BREED_MIN_STAGE: 'medium' as GrowthStage,
-  BREED_PROXIMITY: 60,
+  TILAPIA_BREED_COOLDOWN: 15,
+  TILAPIA_BREED_MIN_STAGE: 'small' as GrowthStage,
+  BREED_PROXIMITY: 80,
   BREED_MAX_HUNGER: 50,
   MAX_FISH: 20,
+
+  // Per-species visual size multiplier applied on top of the growth-stage
+  // scale when generating textures. Tilapia are smaller-bodied than bass.
+  SPECIES_SIZE_SCALE: { tilapia: 0.8, bass: 1.0 } as Record<string, number>,
 
   FISH_PRICES: { tilapia: 15, bass: 40 } as const,
   SELL_PRICES: {

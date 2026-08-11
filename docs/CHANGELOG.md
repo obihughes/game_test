@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.5.1 — 2026-08-11
+
+### Changed
+
+- **Tilapia reproduction buffed**: tilapia can now breed from the **small** stage (was medium) and their breeding cooldown is **15s** (was 30s). Bass requirements are unchanged.
+- **Tilapia visually smaller**: applied a 0.8× species size multiplier to tilapia textures — a small tilapia is now noticeably smaller than a small bass at every stage. Bass are unchanged.
+- **Mate-seeking behavior**: breed-eligible fed fish now actively swim toward the nearest same-species potential mate (at 50% seek strength blended with normal wander), so pairs reliably converge instead of relying on random proximity. Breed detection radius also widened from 60 → 80 px.
+
+## 0.5.0 — 2026-08-11
+
+### Added — Richer fish models
+
+- Redrew both species with an organic S-curve body (head lobe sways opposite the tail bend, a tapered peduncle narrows into the caudal fin), mouth line, gill mark, lateral line, and scale shimmer highlights
+- Tilapia gained 6 barred stripes (up from 3), an anal fin, ventral fins, and a serrated multi-point dorsal fin
+- Bass gained a distinct jagged lateral stripe pattern, an open-mouth jaw wedge, a two-part spiny+soft dorsal fin, anal fin, and ventral fins
+
+### Added — Smoother swimming animation
+
+- Tail animation frames doubled from 4 to 8 (`TAIL_FRAMES`) for less choppy tail-beat cycling
+- Pectoral fins now sweep back and forth with the body's bend phase instead of staying static
+- `swimPhase` advancement is now speed-linked (`moveFish` in `steering.ts`): idle fish undulate lazily, darting/fleeing fish whip their tails rapidly, with a floor so even near-stationary and dead fish keep animating
+- Body wobble rotation is now a compound oscillation (two sine waves at different frequencies) instead of a single sine, reading as more organic; wobble amplitude also eases off at higher speed so fast-cruising fish hold a straighter line
+
+### Added — Eating animations
+
+- Fish now play a visible bite/lunge when they eat: a brief scale-up pulse plus a forward nudge in the direction of travel, driven by a new `eatingTimer` field on `Fish` (`sim/fish.ts`, `sim/tick.ts`)
+- The previously-unused `playEatEffect()` pop is now wired up and fires on every pellet/algae bite, enhanced with scattering food-crumb particles
+- Bass eating prey now triggers a new, more dramatic `playPredatorEatEffect()` (bigger pop, red particle burst) instead of the same subtle effect used for pellets/algae
+- Old saves without `eatingTimer`/`lastEatKind` default safely on load (`save.ts`)
+
 ## 0.4.0 — 2026-08-11
 
 ### Changed — Smoother swim paths

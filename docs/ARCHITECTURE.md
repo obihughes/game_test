@@ -16,7 +16,7 @@ flowchart LR
 ## Data flow
 
 1. **TankScene.update()** calls `advance(state, dt)` each frame. When fast forward is on, `dt` is multiplied by `FAST_FORWARD_MULTIPLIER` (4×) before sim and FX updates; input stays real-time.
-2. Simulation updates fish AI (with hunger-scaled perception radius so hungrier fish search further for food, hunger-scaled speed so hungrier fish swim faster, and predator-avoidance steering so smaller fish flee nearby bass), hunger, pellet sinking/lifetime, algae spawning, pellet/algae eating, bass hunting smaller fish, fish breeding, fish feed passive growth, and buff timers — no Phaser imports. Steering and eating share a single nearest-food search per fish per frame (`updateFish` in `tick.ts`) rather than searching once for movement and again for eat-range, to keep per-frame cost from spiking once fish become hungry. Predator detection runs first each frame — fish within half the flee radius of a bass skip food-seeking/wandering entirely and only flee, while fish further away blend flee steering in alongside normal behavior.
+2. Simulation updates fish AI (with hunger-scaled perception radius so hungrier fish search further for food, hunger-scaled speed so hungrier fish swim faster, and predator-avoidance steering so smaller fish flee nearby bass), hunger, pellet sinking/lifetime, algae spawning, pellet/algae eating, bass hunting smaller fish, fish breeding, fish feed passive growth, and buff timers — no Phaser imports. Steering and eating share a single nearest-food search per fish per frame (`updateFish` in `tick.ts`) rather than searching once for movement and again for eat-range, to keep per-frame cost from spiking once fish become hungry. Predator detection runs first each frame — fish within half the flee radius of a bass skip food-seeking/wandering entirely and only flee, while fish further away blend flee steering in alongside normal behavior. `swimPhase` advances at a speed-linked rate (`moveFish` in `steering.ts`) so faster-moving fish beat their tails quicker. Eating sets a short-lived `eatingTimer`/`lastEatKind` on the fish (`tick.ts`), which the renderer reads to drive the bite/lunge animation and pick the right particle effect.
 3. **TankScene** reads entity positions and syncs Phaser sprites by entity `id`.
 4. Pointer clicks call sim functions in priority order: remove a dead fish, sell a living fish, otherwise drop a food pellet at the click position (`dropFood`).
 5. HUD reads `GameState` every frame; the Shop re-renders only when money or buffs change (after purchases or sales) so button elements are not destroyed mid-click.
@@ -35,8 +35,9 @@ The HTML shell uses a `#stage` wrapper around `#game-container` and `#ui-overlay
 Each sim entity has a numeric `id`. Phaser maintains `Map<id, Sprite>`:
 
 - Create sprite when entity appears.
-- Update position/texture each frame, selecting from 4 animated tail frames based on `fish.swimPhase`.
+- Update position/texture each frame, selecting from 8 animated tail frames based on `fish.swimPhase`.
 - Apply sprite tints and alpha for hunger state (white when fed, warm amber when hungry, pale when starving, gray when dead).
+- Apply a compound sine wobble rotation (amplitude eases off at speed) and, while `eatingTimer > 0`, a one-shot scale-pulse tween plus a per-frame forward-nudge offset computed from `eatingTimer`'s progress (not a position tween, since `setPosition` runs unconditionally every frame and would fight one).
 - Destroy sprite when entity is removed.
 
 ## Why this split

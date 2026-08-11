@@ -102,6 +102,16 @@ export class Hud {
     if (state.fishFeedTimer > 0) {
       buffs.push(`Fish Feed ${Math.ceil(state.fishFeedTimer)}s`);
     }
+    if (state.autoFeeder.unlocked && state.autoFeeder.enabled) {
+      buffs.push(
+        `Auto Feed ${state.autoFeeder.amount}x/${state.autoFeeder.frequency}s (next ${Math.ceil(state.autoFeeder.timer)}s)`,
+      );
+    }
+    if (state.autoFertilizer.unlocked && state.autoFertilizer.enabled) {
+      buffs.push(
+        `Auto Fert every ${state.autoFertilizer.frequency}s (next ${Math.ceil(state.autoFertilizer.timer)}s)`,
+      );
+    }
     const buffsText = buffs.join(' | ');
     if (buffsText !== this.lastBuffsText) {
       this.lastBuffsText = buffsText;

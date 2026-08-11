@@ -11,6 +11,7 @@ import {
   applySeek,
   applyWander,
   findNearestAlgae,
+  findNearestMate,
   findNearestPellet,
   findNearestPredator,
   findNearestPrey,
@@ -18,7 +19,13 @@ import {
   moveFish,
 } from './steering.ts';
 import type { Algae, FoodPellet, GameState } from './state.ts';
-import { isFertilizerActive, isFishFeedActive } from './state.ts';
+import {
+  buyFertilizer,
+  canDropFood,
+  dropFood,
+  isFertilizerActive,
+  isFishFeedActive,
+} from './state.ts';
 
 function distSq(ax: number, ay: number, bx: number, by: number): number {
   const dx = ax - bx;
@@ -41,6 +48,9 @@ type FoodKind = 'pellet' | 'algae' | 'prey';
  * Removes the eaten item from the world (or marks prey for removal) and
  * applies the shared meal reward to the eater.
  */
+/** How long (seconds) the bite/lunge animation plays after a fish eats. */
+export const EATING_ANIMATION_DURATION = 0.35;
+
 function performEat(
   kind: FoodKind,
   fish: Fish,
@@ -56,6 +66,8 @@ function performEat(
   } else {
     (target as Fish).removePending = true;
   }
+  fish.eatingTimer = EATING_ANIMATION_DURATION;
+  fish.lastEatKind = kind;
   feedFish(fish);
 }
 
@@ -67,6 +79,10 @@ function performEat(
  * nearest-food result found here is reused for the post-move eat check.
  */
 function updateFish(fish: Fish, state: GameState, dt: number): void {
+  if (fish.eatingTimer > 0) {
+    fish.eatingTimer = Math.max(0, fish.eatingTimer - dt);
+  }
+
   if (fish.dead) {
     fish.vy += 8 * dt;
     fish.vx *= 1 - dt * 0.5;
@@ -140,6 +156,14 @@ function updateFish(fish: Fish, state: GameState, dt: number): void {
     }
   } else {
     applyWander(fish, dt);
+    // Breed-eligible fish actively drift toward a potential mate so they
+    // don't rely purely on random proximity to trigger the breed check.
+    if (canBreed(fish)) {
+      const mate = findNearestMate(fish, state);
+      if (mate) {
+        applySeek(fish, mate.x, mate.y, dt, 0.5);
+      }
+    }
   }
 
   // A predator lurking further away still gets blended in so the fish
@@ -194,6 +218,14 @@ function applyFishFeed(state: GameState, dt: number): void {
   }
 }
 
+function breedCooldownFor(species: string): number {
+  return species === 'tilapia' ? BALANCE.TILAPIA_BREED_COOLDOWN : BALANCE.BREED_COOLDOWN;
+}
+
+function breedMinStageFor(species: string): import('./balance.ts').GrowthStage {
+  return species === 'tilapia' ? BALANCE.TILAPIA_BREED_MIN_STAGE : BALANCE.BREED_MIN_STAGE;
+}
+
 /** Whether a fish meets the minimum requirements to breed right now. */
 function canBreed(fish: Fish): boolean {
   return (
@@ -201,7 +233,7 @@ function canBreed(fish: Fish): boolean {
     !fish.removePending &&
     fish.breedCooldown <= 0 &&
     fish.hunger <= BALANCE.BREED_MAX_HUNGER &&
-    getGrowthOrder(fish.growthStage) >= getGrowthOrder(BALANCE.BREED_MIN_STAGE)
+    getGrowthOrder(fish.growthStage) >= getGrowthOrder(breedMinStageFor(fish.species))
   );
 }
 
@@ -230,8 +262,9 @@ function processBreeding(state: GameState): void {
       const baby = createFish(a.species, babyX, babyY, state.nextEntityId++);
       state.fish.push(baby);
 
-      a.breedCooldown = BALANCE.BREED_COOLDOWN;
-      b.breedCooldown = BALANCE.BREED_COOLDOWN;
+      const cooldown = breedCooldownFor(a.species);
+      a.breedCooldown = cooldown;
+      b.breedCooldown = cooldown;
       bred.add(a.id);
       bred.add(b.id);
 
@@ -239,6 +272,44 @@ function processBreeding(state: GameState): void {
       break;
     }
   }
+}
+
+/**
+ * Periodically drops pellets on the auto feeder's behalf, once it's
+ * unlocked and enabled. Each pellet still costs money and respects the
+ * pellet cap, so the cycle silently drops fewer pellets (or none) when
+ * funds or tank space run out — it just tries again next cycle.
+ */
+function processAutoFeeder(state: GameState, dt: number): void {
+  const feeder = state.autoFeeder;
+  if (!feeder.unlocked || !feeder.enabled) return;
+
+  feeder.timer -= dt;
+  if (feeder.timer > 0) return;
+  feeder.timer = feeder.frequency;
+
+  for (let i = 0; i < feeder.amount; i++) {
+    if (!canDropFood(state)) break;
+    const x = 40 + Math.random() * (BALANCE.TANK_WIDTH - 80);
+    const y = 40 + Math.random() * (BALANCE.TANK_HEIGHT - 160);
+    dropFood(state, x, y);
+  }
+}
+
+/**
+ * Periodically re-applies the fertilizer buff on the auto fertilizer's
+ * behalf, once it's unlocked and enabled. Skips silently if funds are
+ * insufficient — it just tries again next cycle.
+ */
+function processAutoFertilizer(state: GameState, dt: number): void {
+  const fertilizer = state.autoFertilizer;
+  if (!fertilizer.unlocked || !fertilizer.enabled) return;
+
+  fertilizer.timer -= dt;
+  if (fertilizer.timer > 0) return;
+  fertilizer.timer = fertilizer.frequency;
+
+  buyFertilizer(state);
 }
 
 function updateBuffTimers(state: GameState, dt: number): void {
@@ -260,6 +331,8 @@ export function advance(state: GameState, dt: number): void {
   applyFishFeed(state, dt);
   processBreeding(state);
   updateBuffTimers(state, dt);
+  processAutoFeeder(state, dt);
+  processAutoFertilizer(state, dt);
 
   state.fish = state.fish.filter((f) => !f.removePending);
   state.autosaveTimer += dt;

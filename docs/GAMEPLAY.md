@@ -37,14 +37,20 @@ Eating anything (pellet, algae, or prey) reduces hunger by 45 points and counts 
 
 ## Reproduction
 
-Two grown, well-fed fish of the **same species** that swim close together will breed automatically:
+Two well-fed fish of the **same species** that swim close together will breed automatically. Requirements differ by species:
 
-- Both fish must be at least **medium** growth stage
-- Both fish must have hunger at or below 50 (roughly "fed" or just past it)
-- Both fish must be off their breeding cooldown (30s after each breeding)
-- They must be within 60px of each other
+| Requirement | Tilapia | Bass |
+|-------------|---------|------|
+| Minimum growth stage | **Small** | **Medium** |
+| Max hunger to breed | 50 | 50 |
+| Breeding cooldown | **15s** | 30s |
+| Proximity required | 60px | 60px |
 
-When a pair breeds, a new **small** fish of that species appears at their midpoint, and both parents get a 30-second cooldown before they can breed again. The tank is capped at **20 total fish** — breeding pauses once the cap is reached (selling or losing fish makes room again).
+Tilapia are prolific breeders — they can reproduce even as small fish and recover quickly between broods. Bass are more demanding and need to be at least medium-grown before pairing.
+
+Breed-eligible fish (off cooldown, fed, correct stage) actively swim toward the nearest same-species potential mate, so pairs reliably find each other rather than relying on random proximity.
+
+When a pair breeds, a new **small** fish of that species appears at their midpoint. Both parents enter their cooldown before they can breed again. The tank is capped at **20 total fish** — breeding pauses once the cap is reached (selling or losing fish makes room again).
 
 Bass can and will eat newborn small fish just like any other prey, so an unfed bass population naturally limits how many babies survive.
 
@@ -82,6 +88,17 @@ Click a living fish to sell it immediately for money based on species and growth
 | Fish feed | $40 | 45s | All living fish gain a small amount of passive growth over time (a boost, not a substitute for feeding — it does not reduce hunger) |
 
 Buying a buff while one is already active refreshes its remaining duration.
+
+## Automation (Shop)
+
+Two one-time upgrades let the tank feed and fertilize itself, each with player-configurable amount/frequency sliders that appear in the Shop panel once unlocked:
+
+| Automation | Unlock cost | Configurable | Default | Range | Effect per cycle |
+|------------|-------------|--------------|---------|-------|-------------------|
+| Auto Feeder | $100 | Amount (pellets/cycle), Frequency | 2 pellets every 15s | 1–5 pellets, every 5–60s | Drops pellets like manual feeding — still $5 each, capped at 8 pellets on screen |
+| Auto Fertilizer | $150 | Frequency | Every 65s | Every 30–120s | Re-applies the Fertilizer buff — still $30 per application |
+
+Both automations can be toggled on/off independently once unlocked, and each cycle silently skips (and retries next cycle) if there isn't enough money or tank space — no fish are ever fed on credit. Active automation status and countdown to the next cycle show in the HUD alongside buff timers. Settings and unlock state persist across sessions.
 
 ## Population cap
 

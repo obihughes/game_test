@@ -23,6 +23,10 @@ export interface Fish {
   wanderTargetY?: number;
   dead: boolean;
   removePending: boolean;
+  /** Counts down from a short duration after eating; drives the bite/lunge animation. */
+  eatingTimer: number;
+  /** What this fish most recently ate, used to pick the right eat-effect visual. */
+  lastEatKind: 'pellet' | 'algae' | 'prey' | null;
 }
 
 let nextFishId = 1;
@@ -55,6 +59,8 @@ export function createFish(
     wanderTargetY: pad + Math.random() * (BALANCE.TANK_HEIGHT - 2 * pad),
     dead: false,
     removePending: false,
+    eatingTimer: 0,
+    lastEatKind: null,
   };
 }
 

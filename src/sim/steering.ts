@@ -151,6 +151,30 @@ export function findNearestPredator(fish: Fish, state: GameState): Fish | null {
   return nearest;
 }
 
+/**
+ * Nearest same-species fish that is off its breed cooldown — used so
+ * breed-eligible fish actively drift toward a potential mate instead of
+ * relying purely on random proximity.
+ */
+export function findNearestMate(fish: Fish, state: GameState): Fish | null {
+  let nearest: Fish | null = null;
+  let bestSq = Infinity;
+
+  for (const other of state.fish) {
+    if (other.id === fish.id || other.dead || other.removePending) continue;
+    if (other.species !== fish.species) continue;
+    if (other.breedCooldown > 0) continue;
+    const d =
+      (fish.x - other.x) * (fish.x - other.x) +
+      (fish.y - other.y) * (fish.y - other.y);
+    if (d < bestSq) {
+      bestSq = d;
+      nearest = other;
+    }
+  }
+  return nearest;
+}
+
 /** Steers directly away from a predator's position, ramping up as it gets closer. */
 export function applyFlee(
   fish: Fish,
@@ -273,7 +297,12 @@ export function limitSpeed(fish: Fish, isFleeing = false): void {
 }
 
 export function moveFish(fish: Fish, dt: number): void {
-  fish.swimPhase += dt * 6;
+  // Tail beat rate tracks actual speed so idle fish undulate lazily while
+  // darting/fleeing fish whip their tails rapidly. Floor keeps even
+  // near-stationary fish (including sinking dead ones) visibly animating.
+  const speed = Math.hypot(fish.vx, fish.vy);
+  const tailBeatRate = Math.max(3, 4 + speed * 0.06);
+  fish.swimPhase += dt * tailBeatRate;
   fish.x += fish.vx * dt;
   fish.y += fish.vy * dt + Math.sin(fish.swimPhase) * 0.5;
   clampToTank(fish);

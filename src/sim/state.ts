@@ -15,6 +15,28 @@ export interface FoodPellet {
   lifetime: number;
 }
 
+/** Player-configurable automation that periodically drops food pellets. */
+export interface AutoFeederConfig {
+  unlocked: boolean;
+  enabled: boolean;
+  /** Pellets dropped per cycle. */
+  amount: number;
+  /** Seconds between cycles. */
+  frequency: number;
+  /** Seconds remaining until the next cycle. */
+  timer: number;
+}
+
+/** Player-configurable automation that periodically re-applies the fertilizer buff. */
+export interface AutoFertilizerConfig {
+  unlocked: boolean;
+  enabled: boolean;
+  /** Seconds between cycles. */
+  frequency: number;
+  /** Seconds remaining until the next cycle. */
+  timer: number;
+}
+
 export interface GameState {
   money: number;
   fish: import('./fish.ts').Fish[];
@@ -26,6 +48,8 @@ export interface GameState {
   fertilizerTimer: number;
   /** Seconds remaining on the fish feed buff; 0 means inactive. */
   fishFeedTimer: number;
+  autoFeeder: AutoFeederConfig;
+  autoFertilizer: AutoFertilizerConfig;
   nextEntityId: number;
   autosaveTimer: number;
 }
@@ -43,6 +67,19 @@ export function createInitialState(): GameState {
     food: [],
     fertilizerTimer: 0,
     fishFeedTimer: 0,
+    autoFeeder: {
+      unlocked: false,
+      enabled: true,
+      amount: BALANCE.AUTO_FEEDER_DEFAULT_AMOUNT,
+      frequency: BALANCE.AUTO_FEEDER_DEFAULT_FREQUENCY,
+      timer: BALANCE.AUTO_FEEDER_DEFAULT_FREQUENCY,
+    },
+    autoFertilizer: {
+      unlocked: false,
+      enabled: true,
+      frequency: BALANCE.AUTO_FERTILIZER_DEFAULT_FREQUENCY,
+      timer: BALANCE.AUTO_FERTILIZER_DEFAULT_FREQUENCY,
+    },
     nextEntityId: 1,
     autosaveTimer: 0,
   };
@@ -113,6 +150,77 @@ export function buyFishFeed(state: GameState): boolean {
   state.money -= BALANCE.FISH_FEED_COST;
   state.fishFeedTimer = BALANCE.FISH_FEED_DURATION;
   return true;
+}
+
+export function unlockAutoFeeder(state: GameState): boolean {
+  if (state.autoFeeder.unlocked) return false;
+  if (state.money < BALANCE.AUTO_FEEDER_UNLOCK_COST) return false;
+  state.money -= BALANCE.AUTO_FEEDER_UNLOCK_COST;
+  state.autoFeeder.unlocked = true;
+  state.autoFeeder.timer = state.autoFeeder.frequency;
+  return true;
+}
+
+export function unlockAutoFertilizer(state: GameState): boolean {
+  if (state.autoFertilizer.unlocked) return false;
+  if (state.money < BALANCE.AUTO_FERTILIZER_UNLOCK_COST) return false;
+  state.money -= BALANCE.AUTO_FERTILIZER_UNLOCK_COST;
+  state.autoFertilizer.unlocked = true;
+  state.autoFertilizer.timer = state.autoFertilizer.frequency;
+  return true;
+}
+
+export interface AutoFeederConfigUpdate {
+  amount?: number;
+  frequency?: number;
+  enabled?: boolean;
+}
+
+export function setAutoFeederConfig(
+  state: GameState,
+  update: AutoFeederConfigUpdate,
+): void {
+  const feeder = state.autoFeeder;
+  if (update.amount !== undefined) {
+    feeder.amount = Math.round(
+      Math.max(
+        BALANCE.AUTO_FEEDER_MIN_AMOUNT,
+        Math.min(BALANCE.AUTO_FEEDER_MAX_AMOUNT, update.amount),
+      ),
+    );
+  }
+  if (update.frequency !== undefined) {
+    feeder.frequency = Math.max(
+      BALANCE.AUTO_FEEDER_MIN_FREQUENCY,
+      Math.min(BALANCE.AUTO_FEEDER_MAX_FREQUENCY, update.frequency),
+    );
+    feeder.timer = Math.min(feeder.timer, feeder.frequency);
+  }
+  if (update.enabled !== undefined) {
+    feeder.enabled = update.enabled;
+  }
+}
+
+export interface AutoFertilizerConfigUpdate {
+  frequency?: number;
+  enabled?: boolean;
+}
+
+export function setAutoFertilizerConfig(
+  state: GameState,
+  update: AutoFertilizerConfigUpdate,
+): void {
+  const fertilizer = state.autoFertilizer;
+  if (update.frequency !== undefined) {
+    fertilizer.frequency = Math.max(
+      BALANCE.AUTO_FERTILIZER_MIN_FREQUENCY,
+      Math.min(BALANCE.AUTO_FERTILIZER_MAX_FREQUENCY, update.frequency),
+    );
+    fertilizer.timer = Math.min(fertilizer.timer, fertilizer.frequency);
+  }
+  if (update.enabled !== undefined) {
+    fertilizer.enabled = update.enabled;
+  }
 }
 
 export function sellFish(state: GameState, fishId: number): boolean {

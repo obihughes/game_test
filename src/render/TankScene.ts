@@ -9,12 +9,17 @@ import {
   buyFish,
   buyFertilizer,
   buyFishFeed,
+  unlockAutoFeeder,
+  unlockAutoFertilizer,
+  setAutoFeederConfig,
+  setAutoFertilizerConfig,
   type GameState,
 } from '../sim/state.ts';
 import {
   advance,
   findFishAt,
   findDeadFishAt,
+  EATING_ANIMATION_DURATION,
 } from '../sim/tick.ts';
 import {
   loadState,
@@ -78,6 +83,22 @@ export class TankScene extends Phaser.Scene {
         if (buyFishFeed(this.state)) {
           this.shop.update();
         }
+      },
+      onUnlockAutoFeeder: () => {
+        if (unlockAutoFeeder(this.state)) {
+          this.shop.update();
+        }
+      },
+      onUnlockAutoFertilizer: () => {
+        if (unlockAutoFertilizer(this.state)) {
+          this.shop.update();
+        }
+      },
+      onConfigAutoFeeder: (update) => {
+        setAutoFeederConfig(this.state, update);
+      },
+      onConfigAutoFertilizer: (update) => {
+        setAutoFertilizerConfig(this.state, update);
       },
     });
 
@@ -235,19 +256,60 @@ export class TankScene extends Phaser.Scene {
         sprite.setData('lastAlpha', alpha);
       }
 
-      // Wobble amplitude varies with hunger state
+      // Wobble amplitude varies with hunger state and eases off at speed —
+      // fast-cruising fish hold a straighter line than idle ones.
       let wobbleAmp = 0.08;
       if (fish.hungerStage === 'starving') {
         wobbleAmp = 0.04;
       } else if (fish.hungerStage === 'fed') {
         wobbleAmp = 0.1;
       }
-      const wobble = Math.sin(fish.swimPhase) * wobbleAmp;
+      const speed = Math.hypot(fish.vx, fish.vy);
+      wobbleAmp *= Math.max(0.5, 1 - speed / 200);
+      const wobble =
+        Math.sin(fish.swimPhase) * wobbleAmp +
+        Math.sin(fish.swimPhase * 2.3) * wobbleAmp * 0.3;
       sprite.setRotation(wobble);
 
       if (fish.dead) {
         sprite.setAngle(90);
       }
+
+      // Eating bite/lunge. On the frame the timer starts, capture the
+      // strike direction and fire the one-shot pop/particle effects; every
+      // frame the timer is active, nudge the sprite forward by a computed
+      // offset (not a position tween, since setPosition above runs every
+      // frame and would immediately fight one).
+      const wasEating = (sprite.getData('lastEatingTimer') as number | undefined) ?? 0;
+      if (fish.eatingTimer > 0 && wasEating <= 0) {
+        const eatSpeed = Math.hypot(fish.vx, fish.vy) || 1;
+        sprite.setData('eatDirX', fish.vx / eatSpeed);
+        sprite.setData('eatDirY', fish.vy / eatSpeed);
+        if (fish.lastEatKind === 'prey') {
+          this.fx.playPredatorEatEffect(fish.x, fish.y);
+        } else {
+          this.fx.playEatEffect(fish.x, fish.y);
+        }
+        this.tweens.killTweensOf(sprite);
+        sprite.setScale(1);
+        this.tweens.add({
+          targets: sprite,
+          scaleX: 1.18,
+          scaleY: 1.18,
+          duration: 140,
+          yoyo: true,
+          ease: 'Sine.easeOut',
+        });
+      }
+      if (fish.eatingTimer > 0) {
+        const progress = 1 - fish.eatingTimer / EATING_ANIMATION_DURATION;
+        const nudge = Math.sin(progress * Math.PI) * 4;
+        const dirX = (sprite.getData('eatDirX') as number | undefined) ?? 0;
+        const dirY = (sprite.getData('eatDirY') as number | undefined) ?? 0;
+        sprite.x += dirX * nudge;
+        sprite.y += dirY * nudge;
+      }
+      sprite.setData('lastEatingTimer', fish.eatingTimer);
 
       sprite.setData('frameTick', this.frameTick);
     }
